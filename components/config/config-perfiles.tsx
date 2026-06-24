@@ -6,27 +6,34 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
-import { Eye, Layers, Building2, Pencil, GraduationCap } from "lucide-react"
+import { Eye, Building2, Pencil, GraduationCap, Trash2 } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { toast } from "sonner"
 import { GovernanceWizard } from "@/components/governance-wizard"
-import { lineasProductoSeed, empresasSeed, sucursalesSeed } from "./config-types"
 import { BulkActionsBar } from "./bulk-actions-bar"
 import { useOnboarding } from "@/contexts/onboarding-context"
 
+// El perfil define SOLO el nivel de visualización (jerarquía + abstracción), jerárquico macro→meso→micro.
+// El ALCANCE de acceso (empresas/sucursales/líneas) NO vive en el perfil: es del usuario/grupo → sin cruce de permisos.
 interface PerfilCard {
   id: string
   nombre: string
   nivel: "macro" | "meso" | "micro"
   jerarquia: string
   abstraccion: string
-  empresas: string[]
-  sucursales: string[]
-  lineas: string[]
 }
 
-const perfiles: PerfilCard[] = [
-  { id: "macro", nombre: "Perfil Global", nivel: "macro", jerarquia: "CEO / Junta Directiva", abstraccion: "Vision consolidada (KPIs y tendencias)", empresas: ["e1", "e2", "e3"], sucursales: ["s1", "s2", "s3", "s4", "s5"], lineas: ["lp1", "lp2", "lp3", "lp4", "lp5"] },
-  { id: "meso", nombre: "Perfil Equipo", nivel: "meso", jerarquia: "Gerencia Comercial", abstraccion: "Vision de equipo (tableros y rankings)", empresas: ["e1"], sucursales: ["s1", "s2"], lineas: ["lp1", "lp2", "lp3"] },
-  { id: "micro", nombre: "Perfil Personal", nivel: "micro", jerarquia: "Asesor Comercial", abstraccion: "Vision operativa (mis leads y tareas)", empresas: ["e1"], sucursales: ["s1"], lineas: ["lp3", "lp5"] },
+const perfilesInit: PerfilCard[] = [
+  { id: "macro", nombre: "Perfil Global", nivel: "macro", jerarquia: "CEO / Junta Directiva", abstraccion: "Vision consolidada (KPIs y tendencias)" },
+  { id: "meso", nombre: "Perfil Equipo", nivel: "meso", jerarquia: "Gerencia Comercial", abstraccion: "Vision de equipo (tableros y rankings)" },
+  { id: "micro", nombre: "Perfil Personal", nivel: "micro", jerarquia: "Asesor Comercial", abstraccion: "Vision operativa (mis leads y tareas)" },
 ]
 
 const nivelColor: Record<string, string> = {
@@ -36,18 +43,25 @@ const nivelColor: Record<string, string> = {
 }
 
 export function ConfigPerfiles() {
+  const [perfiles, setPerfiles] = useState<PerfilCard[]>(perfilesInit)
   const [selected, setSelected] = useState<string[]>([])
+  const [borrarId, setBorrarId] = useState<string | null>(null)
   const { enabledByLevel, toggleLevel } = useOnboarding()
-  const lineaById = (id: string) => lineasProductoSeed.find((l) => l.id === id)
-  const empresaById = (id: string) => empresasSeed.find((e) => e.id === id)
-  const sucursalesDeEmpresas = (empresaIds: string[], sucursalIds: string[]) =>
-    sucursalesSeed.filter((s) => empresaIds.includes(s.empresaId) && sucursalIds.includes(s.id))
+
+  const porBorrar = perfiles.find((p) => p.id === borrarId)
+  const eliminarPerfil = () => {
+    if (!porBorrar) return
+    setPerfiles((prev) => prev.filter((p) => p.id !== porBorrar.id))
+    setSelected((prev) => prev.filter((x) => x !== porBorrar.id))
+    toast.success(`Perfil "${porBorrar.nombre}" eliminado`)
+    setBorrarId(null)
+  }
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-muted-foreground text-xs">
-          {perfiles.length} perfiles de gobernanza · cada uno define su nivel de abstraccion y lineas
+          {perfiles.length} perfiles de gobernanza · cada uno define su nivel de visualización (cómo se agregan los datos)
         </p>
         <GovernanceWizard />
       </div>
@@ -90,45 +104,6 @@ export function ConfigPerfiles() {
               <Row icon={<Eye className="h-3.5 w-3.5" />} label="Abstraccion">{p.abstraccion}</Row>
             </div>
 
-            <div className="border-border/50 flex flex-col gap-1.5 border-t pt-2.5">
-              <span className="text-muted-foreground flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide">
-                <Building2 className="h-3 w-3" /> Empresas del grupo
-              </span>
-              <div className="flex flex-wrap gap-1">
-                {p.empresas.map((eid) => {
-                  const e = empresaById(eid)
-                  return (
-                    <Badge key={eid} variant="outline" className="text-[10px] font-normal">
-                      {e?.nombre ?? eid}
-                    </Badge>
-                  )
-                })}
-              </div>
-              <span className="text-muted-foreground text-[10px]">
-                {sucursalesDeEmpresas(p.empresas, p.sucursales).length} sucursales con acceso
-              </span>
-            </div>
-
-            <div className="border-border/50 flex flex-col gap-1.5 border-t pt-2.5">
-              <span className="text-muted-foreground flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide">
-                <Layers className="h-3 w-3" /> Lineas asignadas
-              </span>
-              <div className="flex flex-wrap gap-1">
-                {p.lineas.map((lid) => {
-                  const l = lineaById(lid)
-                  return (
-                    <span
-                      key={lid}
-                      className="h-2 w-2 rounded-full"
-                      style={{ background: l?.color }}
-                      title={l?.nombre}
-                    />
-                  )
-                })}
-                <span className="text-muted-foreground text-[10px]">{p.lineas.length} lineas</span>
-              </div>
-            </div>
-
             <div className="border-border/50 flex items-center justify-between gap-2 border-t pt-2.5">
               <span className="text-muted-foreground flex items-center gap-1.5 text-[11px] font-medium">
                 <GraduationCap className="h-3.5 w-3.5" /> Onboarding de uso
@@ -141,7 +116,7 @@ export function ConfigPerfiles() {
               />
             </div>
 
-            <div className="flex items-center justify-end">
+            <div className="flex items-center justify-end gap-1">
               <GovernanceWizard
                 trigger={
                   <Button
@@ -153,6 +128,14 @@ export function ConfigPerfiles() {
                   </Button>
                 }
               />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setBorrarId(p.id)}
+                className="text-muted-foreground hover:text-destructive h-7 gap-1 px-2 text-xs"
+              >
+                <Trash2 className="h-3 w-3" /> Eliminar
+              </Button>
             </div>
           </motion.div>
         ))}
@@ -165,14 +148,36 @@ export function ConfigPerfiles() {
         onDuplicate={() => setSelected([])}
         replicableBlocks={[
           { id: "abstraccion", label: "Nivel de abstraccion" },
-          { id: "empresas", label: "Empresas del grupo" },
-          { id: "sucursales", label: "Sucursales" },
-          { id: "lineas", label: "Lineas de producto" },
           { id: "asistente", label: "Asistente Jarvis" },
         ]}
         replicaTargets={perfiles.filter((p) => !selected.includes(p.id)).map((p) => ({ id: p.id, label: p.nombre }))}
         onReplicate={() => {}}
       />
+
+      {/* Dialogo Eliminar perfil */}
+      <Dialog open={!!borrarId} onOpenChange={(o) => !o && setBorrarId(null)}>
+        <DialogContent className="bg-card border-border max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2 text-base">
+              <Trash2 className="text-destructive h-4 w-4" />
+              Eliminar perfil
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-xs">
+              Vas a eliminar <span className="text-foreground font-medium">{porBorrar?.nombre}</span>. El perfil define solo la visualización: el acceso de los usuarios (empresas/sucursales/líneas) no se ve afectado.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setBorrarId(null)} className="text-xs">Cancelar</Button>
+            <Button
+              size="sm"
+              onClick={eliminarPerfil}
+              className="bg-destructive hover:bg-destructive/90 gap-1.5 text-xs text-white"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Eliminar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

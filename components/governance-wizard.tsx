@@ -6,7 +6,6 @@ import {
   Users,
   Eye,
   Layers,
-  Tag,
   ChevronRight,
   ChevronLeft,
   Check,
@@ -15,7 +14,6 @@ import {
   Smartphone,
   Target,
   Upload,
-  AlertTriangle,
   Shield,
   Sparkles,
   LayoutGrid,
@@ -35,7 +33,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { empresasSeed, sucursalesSeed } from "./config/config-types"
 
 interface ReportViewConfig {
   id: string
@@ -48,14 +45,10 @@ interface ProfileConfig {
   name: string
   reportsTo: string
   abstraction: "macro" | "meso" | "micro"
-  /* Empresas del grupo y sucursales a las que el perfil tiene acceso */
-  empresas: string[]
-  sucursales: string[]
   sources: {
     pautaDigital: boolean
     campanasExternas: boolean
   }
-  productLines: string[]
   reports: ReportViewConfig[]
 }
 
@@ -63,8 +56,7 @@ const steps = [
   { id: 1, title: "Identidad", subtitle: "Nombre y jerarquia", icon: Users },
   { id: 2, title: "Abstraccion", subtitle: "Nivel visual", icon: Eye },
   { id: 3, title: "Atribucion", subtitle: "Fuentes de leads", icon: Layers },
-  { id: 4, title: "Segmentacion", subtitle: "Lineas de producto", icon: Tag },
-  { id: 5, title: "Informes", subtitle: "Vistas del dashboard", icon: LayoutGrid },
+  { id: 4, title: "Informes", subtitle: "Vistas del dashboard", icon: LayoutGrid },
 ]
 
 const viewModes = [
@@ -129,13 +121,6 @@ const existingProfiles = [
   { id: "director", name: "Director de Ventas", level: "meso" },
 ]
 
-const productLines = [
-  { id: "software", name: "Linea Software", count: 342 },
-  { id: "hardware", name: "Linea Hardware", count: 156 },
-  { id: "servicios", name: "Servicios Profesionales", count: 89 },
-  { id: "soporte", name: "Soporte Premium", count: 234 },
-]
-
 export function GovernanceWizard({ trigger }: { trigger?: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
@@ -143,13 +128,10 @@ export function GovernanceWizard({ trigger }: { trigger?: React.ReactNode }) {
     name: "",
     reportsTo: "",
     abstraction: "meso",
-    empresas: [empresasSeed[0]?.id].filter(Boolean) as string[],
-    sucursales: [],
     sources: {
       pautaDigital: true,
       campanasExternas: false,
     },
-    productLines: [],
     reports: defaultReports,
   })
 
@@ -162,8 +144,6 @@ export function GovernanceWizard({ trigger }: { trigger?: React.ReactNode }) {
       case 3:
         return config.sources.pautaDigital || config.sources.campanasExternas
       case 4:
-        return config.productLines.length > 0
-      case 5:
         return config.reports.some((r) => r.visible)
       default:
         return false
@@ -171,7 +151,7 @@ export function GovernanceWizard({ trigger }: { trigger?: React.ReactNode }) {
   }
 
   const handleNext = () => {
-    if (currentStep < 5) {
+    if (currentStep < 4) {
       setCurrentStep(currentStep + 1)
     }
   }
@@ -190,44 +170,9 @@ export function GovernanceWizard({ trigger }: { trigger?: React.ReactNode }) {
       name: "",
       reportsTo: "",
       abstraction: "meso",
-      empresas: [empresasSeed[0]?.id].filter(Boolean) as string[],
-      sucursales: [],
       sources: { pautaDigital: true, campanasExternas: false },
-      productLines: [],
       reports: defaultReports,
     })
-  }
-
-  const toggleProductLine = (id: string) => {
-    setConfig((prev) => ({
-      ...prev,
-      productLines: prev.productLines.includes(id)
-        ? prev.productLines.filter((p) => p !== id)
-        : [...prev.productLines, id],
-    }))
-  }
-
-  // Alterna una empresa del grupo. En cascada quita las sucursales de la empresa deseleccionada.
-  const toggleEmpresa = (id: string) => {
-    setConfig((prev) => {
-      const empresas = prev.empresas.includes(id)
-        ? prev.empresas.filter((e) => e !== id)
-        : [...prev.empresas, id]
-      const sucursales = prev.sucursales.filter((sid) => {
-        const suc = sucursalesSeed.find((s) => s.id === sid)
-        return suc ? empresas.includes(suc.empresaId) : false
-      })
-      return { ...prev, empresas, sucursales }
-    })
-  }
-
-  const toggleSucursal = (id: string) => {
-    setConfig((prev) => ({
-      ...prev,
-      sucursales: prev.sucursales.includes(id)
-        ? prev.sucursales.filter((s) => s !== id)
-        : [...prev.sucursales, id],
-    }))
   }
 
   const toggleReportVisible = (id: string) => {
@@ -341,18 +286,18 @@ export function GovernanceWizard({ trigger }: { trigger?: React.ReactNode }) {
                 <div className="flex flex-col gap-1">
                   <h3 className="text-foreground text-base font-semibold">Paso 1: Identidad del Perfil</h3>
                   <p className="text-muted-foreground text-xs">
-                    Define el nombre del rol que veras al asignar usuarios y permisos.
+                    Define el nombre del perfil que veras al asignar usuarios.
                   </p>
                 </div>
 
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="role-name" className="text-foreground text-xs">
-                      Nombre del Rol
+                      Nombre de perfil
                     </Label>
                     <Input
                       id="role-name"
-                      placeholder="Ej: Asesor Comercial Junior"
+                      placeholder="Ej: Perfil Gerencial"
                       value={config.name}
                       onChange={(e) => setConfig({ ...config, name: e.target.value })}
                       className="border-border/40 bg-secondary/40"
@@ -516,146 +461,11 @@ export function GovernanceWizard({ trigger }: { trigger?: React.ReactNode }) {
               </div>
             )}
 
-            {/* Step 4: Product Lines */}
+            {/* Step 4: Reports */}
             {currentStep === 4 && (
               <div className="flex flex-col gap-5">
                 <div className="flex flex-col gap-1">
-                  <h3 className="text-foreground text-base font-semibold">Paso 4: Restriccion por Linea o Producto</h3>
-                  <p className="text-muted-foreground text-xs">
-                    Define la segmentacion de la base de datos. El backend inyectara filtros SQL automaticos.
-                  </p>
-                </div>
-
-                {/* Empresas del grupo y sucursales con acceso */}
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center gap-1.5">
-                    <Building2 className="text-muted-foreground h-3.5 w-3.5" />
-                    <span className="text-foreground text-xs font-semibold uppercase tracking-wide">
-                      Empresas del grupo
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                    {empresasSeed.map((emp) => {
-                      const isSelected = config.empresas.includes(emp.id)
-                      return (
-                        <button
-                          key={emp.id}
-                          onClick={() => toggleEmpresa(emp.id)}
-                          className={`flex items-center justify-between rounded-lg border p-3 text-left transition-all ${
-                            isSelected
-                              ? "border-[#3b82f6]/30 bg-[#3b82f6]/5"
-                              : "border-border/30 hover:border-border/50 bg-secondary/20"
-                          }`}
-                        >
-                          <div className="flex flex-col gap-0.5">
-                            <span className={`text-xs font-medium ${isSelected ? "text-[#3b82f6]" : "text-foreground"}`}>
-                              {emp.nombre}
-                            </span>
-                            <span className="text-muted-foreground text-[10px]">{emp.industria}</span>
-                          </div>
-                          <div
-                            className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 transition-all ${
-                              isSelected ? "border-[#3b82f6] bg-[#3b82f6]" : "border-border/40"
-                            }`}
-                          >
-                            {isSelected && <Check className="h-3 w-3 text-white" />}
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    <Building2 className="text-muted-foreground h-3.5 w-3.5" />
-                    <span className="text-foreground text-xs font-semibold uppercase tracking-wide">
-                      Sucursales con acceso
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {sucursalesSeed
-                      .filter((s) => config.empresas.includes(s.empresaId))
-                      .map((suc) => {
-                        const isSelected = config.sucursales.includes(suc.id)
-                        return (
-                          <button
-                            key={suc.id}
-                            onClick={() => toggleSucursal(suc.id)}
-                            className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-all ${
-                              isSelected
-                                ? "border-[#22c55e]/40 bg-[#22c55e]/10 text-[#22c55e]"
-                                : "border-border/40 text-muted-foreground hover:border-border/60"
-                            }`}
-                          >
-                            {isSelected && <Check className="h-3 w-3" />}
-                            {suc.nombre}
-                          </button>
-                        )
-                      })}
-                    {sucursalesSeed.filter((s) => config.empresas.includes(s.empresaId)).length === 0 && (
-                      <span className="text-muted-foreground text-[11px]">
-                        Selecciona al menos una empresa para ver sus sucursales.
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="bg-border/40 h-px w-full" />
-
-                <div className="flex items-center gap-1.5">
-                  <Tag className="text-muted-foreground h-3.5 w-3.5" />
-                  <span className="text-foreground text-xs font-semibold uppercase tracking-wide">
-                    Lineas de producto
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {productLines.map((line) => {
-                    const isSelected = config.productLines.includes(line.id)
-
-                    return (
-                      <button
-                        key={line.id}
-                        onClick={() => toggleProductLine(line.id)}
-                        className={`flex items-center justify-between rounded-xl border p-4 text-left transition-all ${
-                          isSelected
-                            ? "border-aura/30 bg-aura/5"
-                            : "border-border/30 hover:border-border/50 bg-secondary/20 hover:bg-secondary/40"
-                        }`}
-                      >
-                        <div className="flex flex-col gap-0.5">
-                          <span className={`text-sm font-medium ${isSelected ? "text-aura" : "text-foreground"}`}>
-                            {line.name}
-                          </span>
-                          <span className="text-muted-foreground text-[11px]">{line.count} leads activos</span>
-                        </div>
-                        <div
-                          className={`flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all ${
-                            isSelected ? "border-aura bg-aura" : "border-border/40"
-                          }`}
-                        >
-                          {isSelected && <Check className="h-3.5 w-3.5 text-white" />}
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-
-                <div className="bg-warning/5 border-warning/20 rounded-lg border p-3">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="text-warning mt-0.5 h-4 w-4 flex-shrink-0" />
-                    <p className="text-muted-foreground text-xs leading-relaxed">
-                      <strong className="text-warning">Segmentacion SQL:</strong> Este perfil jamas vera datos cruzados de areas 
-                      no seleccionadas. El filtro se inyecta automaticamente en cada consulta.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Step 5: Reports */}
-            {currentStep === 5 && (
-              <div className="flex flex-col gap-5">
-                <div className="flex flex-col gap-1">
-                  <h3 className="text-foreground text-base font-semibold">Paso 5: Configuracion de Informes</h3>
+                  <h3 className="text-foreground text-base font-semibold">Paso 4: Configuracion de Informes</h3>
                   <p className="text-muted-foreground text-xs">
                     Define que informes vera este perfil y en que formato. Selecciona multiples vistas que se ordenaran automaticamente de Global a Personal.
                   </p>
@@ -767,10 +577,10 @@ export function GovernanceWizard({ trigger }: { trigger?: React.ReactNode }) {
           </Button>
 
           <div className="text-muted-foreground/60 text-xs">
-            Paso {currentStep} de 5
+            Paso {currentStep} de 4
           </div>
 
-          {currentStep < 5 ? (
+          {currentStep < 4 ? (
             <Button
               onClick={handleNext}
               disabled={!canProceed()}

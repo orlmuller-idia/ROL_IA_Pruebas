@@ -20,7 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Building2, Save, Globe, Coins, Plus } from "lucide-react"
+import { Building2, Save, Globe, Coins, Plus, Trash2, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import { MONEDAS } from "./config-types"
 import type { Empresa, MonedaCode } from "./config-types"
@@ -36,12 +36,32 @@ const nuevaEmpresaVacia = () => ({
 })
 
 export function ConfigEmpresa() {
-  const { empresas, setEmpresas, addEmpresa, grupo } = useConfigStore()
+  const { empresas, setEmpresas, addEmpresa, removeEmpresa, grupo, sucursales, lineas, usuarios } =
+    useConfigStore()
   const [selectedId, setSelectedId] = useState<string>(empresas[0]?.id ?? "")
   const [crearOpen, setCrearOpen] = useState(false)
+  const [borrarOpen, setBorrarOpen] = useState(false)
   const [nueva, setNueva] = useState(nuevaEmpresaVacia())
 
   const empresa = empresas.find((e) => e.id === selectedId) ?? empresas[0]
+
+  // Dependencias que bloquean el borrado (mismo criterio que el backend: hard delete solo si está vacía).
+  const deps = empresa
+    ? {
+        sucursales: sucursales.filter((s) => s.empresaId === empresa.id).length,
+        lineas: lineas.filter((l) => l.empresaId === empresa.id).length,
+        usuarios: usuarios.filter((u) => u.sucursales.some((sid) => sucursales.find((s) => s.id === sid)?.empresaId === empresa.id)).length,
+      }
+    : { sucursales: 0, lineas: 0, usuarios: 0 }
+  const tieneDeps = deps.sucursales > 0 || deps.lineas > 0 || deps.usuarios > 0
+
+  const eliminarEmpresa = () => {
+    if (!empresa) return
+    removeEmpresa(empresa.id)
+    toast.success(`Empresa "${empresa.nombre}" eliminada`)
+    setBorrarOpen(false)
+    setSelectedId(empresas.find((e) => e.id !== empresa.id)?.id ?? "")
+  }
 
   const set = <K extends keyof Empresa>(key: K, value: Empresa[K]) =>
     setEmpresas((prev) => prev.map((e) => (e.id === selectedId ? { ...e, [key]: value } : e)))
@@ -73,8 +93,6 @@ export function ConfigEmpresa() {
     setNueva(nuevaEmpresaVacia())
     setCrearOpen(false)
   }
-
-  if (!empresa) return null
 
   return (
     <div className="flex flex-col gap-5">
@@ -129,6 +147,23 @@ export function ConfigEmpresa() {
         ))}
       </div>
 
+      {!empresa ? (
+        <div className="border-border flex flex-col items-center gap-3 rounded-xl border border-dashed bg-white/60 p-10 text-center">
+          <div className="bg-aura/10 flex h-12 w-12 items-center justify-center rounded-xl">
+            <Building2 className="text-aura h-6 w-6" />
+          </div>
+          <div>
+            <h3 className="text-foreground text-sm font-semibold">Crea tu primera empresa</h3>
+            <p className="text-muted-foreground mt-1 text-xs">
+              Para empezar a operar, registra al menos una empresa del holding. Luego podrás crear sus sucursales, líneas y usuarios.
+            </p>
+          </div>
+          <Button onClick={() => setCrearOpen(true)} size="sm" className="bg-aura hover:bg-aura/90 text-foreground gap-1.5 text-xs">
+            <Plus className="h-3.5 w-3.5" /> Crear empresa
+          </Button>
+        </div>
+      ) : (
+      <>
       {/* Identidad */}
       <div className="border-border rounded-xl border bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center gap-2.5">
@@ -193,7 +228,15 @@ export function ConfigEmpresa() {
         </div>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-3">
+        <Button
+          variant="outline"
+          onClick={() => setBorrarOpen(true)}
+          className="border-destructive/30 text-destructive hover:bg-destructive/10 gap-1.5 text-xs"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          Eliminar empresa
+        </Button>
         <Button
           onClick={() => toast.success(`Cambios de "${empresa.nombre}" guardados correctamente`)}
           className="bg-aura hover:bg-aura/90 text-foreground gap-1.5 text-xs"
@@ -202,6 +245,8 @@ export function ConfigEmpresa() {
           Guardar cambios
         </Button>
       </div>
+      </>
+      )}
 
       {/* Dialogo Nueva empresa */}
       <Dialog open={crearOpen} onOpenChange={setCrearOpen}>
@@ -272,6 +317,47 @@ export function ConfigEmpresa() {
             <Button variant="outline" size="sm" onClick={() => setCrearOpen(false)} className="text-xs">Cancelar</Button>
             <Button size="sm" onClick={crearEmpresa} className="bg-aura hover:bg-aura/90 text-foreground gap-1.5 text-xs">
               <Plus className="h-3.5 w-3.5" /> Crear empresa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialogo Eliminar empresa */}
+      <Dialog open={borrarOpen} onOpenChange={setBorrarOpen}>
+        <DialogContent className="bg-card border-border max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2 text-base">
+              <Trash2 className="text-destructive h-4 w-4" />
+              Eliminar empresa
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-xs">
+              Vas a eliminar <span className="text-foreground font-medium">{empresa?.nombre}</span>. Esta acción no se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+
+          {tieneDeps ? (
+            <div className="border-destructive/30 bg-destructive/5 flex items-start gap-2 rounded-lg border p-3">
+              <AlertTriangle className="text-destructive mt-0.5 h-4 w-4 shrink-0" />
+              <div className="text-muted-foreground text-xs leading-relaxed">
+                <p className="text-foreground mb-1 font-medium">No se puede eliminar: tiene registros relacionados.</p>
+                Elimina primero: {deps.sucursales > 0 && <b>{deps.sucursales} sucursal(es)</b>}
+                {deps.lineas > 0 && <> · <b>{deps.lineas} línea(s)</b></>}
+                {deps.usuarios > 0 && <> · <b>{deps.usuarios} usuario(s)</b></>}.
+              </div>
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-xs">La empresa no tiene sucursales, líneas ni usuarios: se puede eliminar.</p>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setBorrarOpen(false)} className="text-xs">Cancelar</Button>
+            <Button
+              size="sm"
+              disabled={tieneDeps}
+              onClick={eliminarEmpresa}
+              className="bg-destructive hover:bg-destructive/90 gap-1.5 text-xs text-white disabled:opacity-50"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Eliminar
             </Button>
           </DialogFooter>
         </DialogContent>

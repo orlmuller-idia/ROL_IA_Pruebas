@@ -73,10 +73,15 @@ export interface Sucursal {
   activa: boolean
   usuarios: number
   bovedaConfigurada: boolean
+  /* Líneas de producto (de la empresa) asignadas a la sucursal al crearla. */
+  lineasProducto: string[]
 }
 
+/* Línea de producto. Se crea a nivel de EMPRESA y se asigna a sucursales al crearlas;
+   los usuarios/grupos solo pueden tomar líneas presentes en sus sucursales. */
 export interface LineaProducto {
   id: string
+  empresaId: string
   nombre: string
   color: string
 }
@@ -97,7 +102,9 @@ export interface Usuario {
   id: string
   nombre: string
   email: string
-  rol: string
+  cargo: string
+  /* Rol a nivel de usuario (igual en todas sus empresas). owner = quien registra el holding (no se elige aquí). */
+  role: "admin" | "member"
   sucursalId: string
   /* Sucursales a las que el usuario tiene acceso (multi-sede). Incluye su sucursal base. */
   sucursales: string[]
@@ -109,20 +116,19 @@ export interface Usuario {
 
 /* ── Perfiles de gobernanza (el "rol" es lo que se muestra al asignar) ── */
 
+// El perfil es SOLO nivel de visualización (cómo se agregan los datos), jerárquico macro→meso→micro.
+// El ALCANCE de acceso (empresas/sucursales/líneas) NO vive en el perfil: es del usuario
+// (Membership/MembershipSucursal/líneas) y se hereda del grupo. Así no hay cruce de permisos perfil↔usuario.
 export interface PerfilGobernanza {
   id: string
   rol: string
   nivel: "macro" | "meso" | "micro"
-  /* Alcance de acceso del perfil. Vacio = acceso a todo (sin restriccion). */
-  empresas: string[]
-  sucursales: string[]
-  lineasProducto: string[]
 }
 
 export const perfilesSeed: PerfilGobernanza[] = [
-  { id: "macro", rol: "CEO / Junta Directiva", nivel: "macro", empresas: [], sucursales: [], lineasProducto: [] },
-  { id: "meso", rol: "Gerencia Comercial", nivel: "meso", empresas: ["e1"], sucursales: ["s1", "s2"], lineasProducto: ["lp1", "lp2"] },
-  { id: "micro", rol: "Asesor Comercial", nivel: "micro", empresas: ["e1"], sucursales: ["s1"], lineasProducto: ["lp3", "lp5"] },
+  { id: "macro", rol: "CEO / Junta Directiva", nivel: "macro" },
+  { id: "meso", rol: "Gerencia Comercial", nivel: "meso" },
+  { id: "micro", rol: "Asesor Comercial", nivel: "micro" },
 ]
 
 /* ── Asistentes (Jarvis por perfil) ── */
@@ -212,20 +218,21 @@ export const empresasSeed: Empresa[] = [
 /* Alias de compatibilidad: la empresa principal del grupo (matriz). */
 export const empresaSeed: Empresa = empresasSeed[0]
 
+/* Líneas a nivel de empresa: e1 (Andina) → Premium/Corporativa/Retail/Express; e2 (MX) → Servicios. */
 export const lineasProductoSeed: LineaProducto[] = [
-  { id: "lp1", nombre: "Linea Premium", color: "#a855f7" },
-  { id: "lp2", nombre: "Linea Corporativa", color: "#3b82f6" },
-  { id: "lp3", nombre: "Linea Retail", color: "#22c55e" },
-  { id: "lp4", nombre: "Linea Servicios", color: "#f59e0b" },
-  { id: "lp5", nombre: "Linea Express", color: "#ef4444" },
+  { id: "lp1", empresaId: "e1", nombre: "Linea Premium", color: "#a855f7" },
+  { id: "lp2", empresaId: "e1", nombre: "Linea Corporativa", color: "#3b82f6" },
+  { id: "lp3", empresaId: "e1", nombre: "Linea Retail", color: "#22c55e" },
+  { id: "lp4", empresaId: "e2", nombre: "Linea Servicios", color: "#f59e0b" },
+  { id: "lp5", empresaId: "e1", nombre: "Linea Express", color: "#ef4444" },
 ]
 
 export const sucursalesSeed: Sucursal[] = [
-  { id: "s1", empresaId: "e1", nombre: "Sede Bogota", pais: "Colombia", ciudad: "Bogota", idioma: "es", moneda: "COP", activa: true, usuarios: 24, bovedaConfigurada: true },
-  { id: "s2", empresaId: "e1", nombre: "Sede Medellin", pais: "Colombia", ciudad: "Medellin", idioma: "es", moneda: "COP", activa: true, usuarios: 16, bovedaConfigurada: true },
-  { id: "s3", empresaId: "e2", nombre: "Sede CDMX", pais: "Mexico", ciudad: "Ciudad de Mexico", idioma: "es", moneda: "MXN", activa: true, usuarios: 19, bovedaConfigurada: false },
-  { id: "s4", empresaId: "e2", nombre: "Miami Hub", pais: "Estados Unidos", ciudad: "Miami", idioma: "en", moneda: "USD", activa: false, usuarios: 8, bovedaConfigurada: false },
-  { id: "s5", empresaId: "e3", nombre: "Sede Sao Paulo", pais: "Brasil", ciudad: "Sao Paulo", idioma: "pt", moneda: "BRL", activa: true, usuarios: 12, bovedaConfigurada: false },
+  { id: "s1", empresaId: "e1", nombre: "Sede Bogota", pais: "Colombia", ciudad: "Bogota", idioma: "es", moneda: "COP", activa: true, usuarios: 24, bovedaConfigurada: true, lineasProducto: ["lp1", "lp2", "lp3", "lp5"] },
+  { id: "s2", empresaId: "e1", nombre: "Sede Medellin", pais: "Colombia", ciudad: "Medellin", idioma: "es", moneda: "COP", activa: true, usuarios: 16, bovedaConfigurada: true, lineasProducto: ["lp2"] },
+  { id: "s3", empresaId: "e2", nombre: "Sede CDMX", pais: "Mexico", ciudad: "Ciudad de Mexico", idioma: "es", moneda: "MXN", activa: true, usuarios: 19, bovedaConfigurada: false, lineasProducto: ["lp4"] },
+  { id: "s4", empresaId: "e2", nombre: "Miami Hub", pais: "Estados Unidos", ciudad: "Miami", idioma: "en", moneda: "USD", activa: false, usuarios: 8, bovedaConfigurada: false, lineasProducto: [] },
+  { id: "s5", empresaId: "e3", nombre: "Sede Sao Paulo", pais: "Brasil", ciudad: "Sao Paulo", idioma: "pt", moneda: "BRL", activa: true, usuarios: 12, bovedaConfigurada: false, lineasProducto: [] },
 ]
 
 export const gruposSeed: GrupoUsuarios[] = [
@@ -236,12 +243,12 @@ export const gruposSeed: GrupoUsuarios[] = [
 ]
 
 export const usuariosSeed: Usuario[] = [
-  { id: "u1", nombre: "Roberto Mendez", email: "roberto@grupoandina.com", rol: "CEO / Junta Directiva", sucursalId: "s1", sucursales: ["s1", "s2", "s3", "s4", "s5"], grupoId: null, perfilNivel: "macro", lineasProducto: ["lp1", "lp2", "lp3", "lp4", "lp5"], activo: true },
-  { id: "u2", nombre: "Laura Garcia", email: "laura@grupoandina.com", rol: "Gerencia Comercial", sucursalId: "s1", sucursales: ["s1", "s2"], grupoId: "g1", perfilNivel: "meso", lineasProducto: ["lp1", "lp2"], activo: true },
-  { id: "u3", nombre: "Carlos Martinez", email: "carlos@grupoandina.com", rol: "Asesor Comercial", sucursalId: "s1", sucursales: ["s1"], grupoId: "g2", perfilNivel: "micro", lineasProducto: ["lp3", "lp5"], activo: true },
-  { id: "u4", nombre: "Ana Lopez", email: "ana@grupoandina.com", rol: "Asesora Senior", sucursalId: "s2", sucursales: ["s2"], grupoId: "g3", perfilNivel: "micro", lineasProducto: ["lp2"], activo: true },
-  { id: "u5", nombre: "Diego Ramirez", email: "diego@grupoandina.com", rol: "Gerente Regional", sucursalId: "s3", sucursales: ["s3", "s4"], grupoId: "g4", perfilNivel: "meso", lineasProducto: ["lp4"], activo: true },
-  { id: "u6", nombre: "Sofia Torres", email: "sofia@grupoandina.com", rol: "Asesora", sucursalId: "s3", sucursales: ["s3"], grupoId: "g4", perfilNivel: "micro", lineasProducto: ["lp4"], activo: false },
+  { id: "u1", nombre: "Roberto Mendez", email: "roberto@grupoandina.com", cargo: "CEO / Junta Directiva", role: "admin", sucursalId: "s1", sucursales: ["s1", "s2", "s3", "s4", "s5"], grupoId: null, perfilNivel: "macro", lineasProducto: ["lp1", "lp2", "lp3", "lp4", "lp5"], activo: true },
+  { id: "u2", nombre: "Laura Garcia", email: "laura@grupoandina.com", cargo: "Gerencia Comercial", role: "admin", sucursalId: "s1", sucursales: ["s1", "s2"], grupoId: "g1", perfilNivel: "meso", lineasProducto: ["lp1", "lp2"], activo: true },
+  { id: "u3", nombre: "Carlos Martinez", email: "carlos@grupoandina.com", cargo: "Asesor Comercial", role: "member", sucursalId: "s1", sucursales: ["s1"], grupoId: "g2", perfilNivel: "micro", lineasProducto: ["lp3", "lp5"], activo: true },
+  { id: "u4", nombre: "Ana Lopez", email: "ana@grupoandina.com", cargo: "Asesora Senior", role: "member", sucursalId: "s2", sucursales: ["s2"], grupoId: "g3", perfilNivel: "micro", lineasProducto: ["lp2"], activo: true },
+  { id: "u5", nombre: "Diego Ramirez", email: "diego@grupoandina.com", cargo: "Gerente Regional", role: "admin", sucursalId: "s3", sucursales: ["s3", "s4"], grupoId: "g4", perfilNivel: "meso", lineasProducto: ["lp4"], activo: true },
+  { id: "u6", nombre: "Sofia Torres", email: "sofia@grupoandina.com", cargo: "Asesora", role: "member", sucursalId: "s3", sucursales: ["s3"], grupoId: "g4", perfilNivel: "micro", lineasProducto: ["lp4"], activo: false },
 ]
 
 const capacidadDefault = (enabled: boolean, reglas: Record<string, string>): CapacidadConfig => ({ enabled, reglas })

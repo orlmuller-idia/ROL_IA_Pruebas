@@ -22,12 +22,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { MapPin, Plus, ChevronLeft, Globe, Coins, Languages, Lock, ShieldCheck, Building, Users } from "lucide-react"
+import { MapPin, Plus, ChevronLeft, Globe, Coins, Languages, Lock, ShieldCheck, Building, Users, Shield, Radio, TrendingUp, Tag } from "lucide-react"
 import { toast } from "sonner"
 import { IDIOMAS, MONEDAS } from "./config-types"
 import type { IdiomaCode, MonedaCode } from "./config-types"
 import { BulkActionsBar } from "./bulk-actions-bar"
 import { SecurityVault } from "@/components/security-vault"
+import { GuardiansFullConfig } from "@/components/guardians-full-config"
 import { useConfigStore } from "./config-store"
 
 const nuevaSucursalVacia = (empresaId: string) => ({
@@ -37,13 +38,14 @@ const nuevaSucursalVacia = (empresaId: string) => ({
   ciudad: "",
   idioma: "es" as IdiomaCode,
   moneda: "COP" as MonedaCode,
+  lineas: [] as string[],
 })
 
 export function ConfigSucursales() {
-  const { empresas, sucursales, setSucursales, addSucursal } = useConfigStore()
+  const { empresas, sucursales, setSucursales, addSucursal, lineas } = useConfigStore()
   const [selected, setSelected] = useState<string[]>([])
   const [openId, setOpenId] = useState<string | null>(null)
-  const [detailTab, setDetailTab] = useState<"datos" | "boveda">("datos")
+  const [detailTab, setDetailTab] = useState<"datos" | "boveda" | "guardianes">("datos")
   const [crearOpen, setCrearOpen] = useState(false)
   const [nueva, setNueva] = useState(nuevaSucursalVacia(empresas[0]?.id ?? ""))
 
@@ -73,6 +75,7 @@ export function ConfigSucursales() {
       activa: true,
       usuarios: 0,
       bovedaConfigurada: false,
+      lineasProducto: nueva.lineas,
     })
     toast.success(`Sucursal "${nueva.nombre.trim()}" creada`)
     setNueva(nuevaSucursalVacia(empresas[0]?.id ?? ""))
@@ -120,10 +123,14 @@ export function ConfigSucursales() {
               <Lock className="h-3.5 w-3.5" />
               Boveda de seguridad
             </TabBtn>
+            <TabBtn active={detailTab === "guardianes"} onClick={() => setDetailTab("guardianes")}>
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Guardianes
+            </TabBtn>
           </div>
 
           <div className="pt-4">
-            {detailTab === "datos" ? (
+            {detailTab === "datos" && (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <DetailField label="Empresa del grupo" icon={<Building className="h-3.5 w-3.5" />}>
                   <Select defaultValue={openSucursal.empresaId}>
@@ -158,9 +165,9 @@ export function ConfigSucursales() {
                   </Select>
                 </DetailField>
               </div>
-            ) : (
-              <SecurityVault scopeLabel={openSucursal.nombre} />
             )}
+            {detailTab === "boveda" && <SecurityVault scopeLabel={openSucursal.nombre} />}
+            {detailTab === "guardianes" && <GuardianesTab scopeLabel={openSucursal.nombre} />}
           </div>
 
           {detailTab === "datos" && (
@@ -221,6 +228,7 @@ export function ConfigSucursales() {
               <Pill icon={<Languages className="h-3 w-3" />}>{idiomaLabel(s.idioma)}</Pill>
               <Pill icon={<Coins className="h-3 w-3" />}>{monedaLabel(s.moneda)}</Pill>
               <Pill icon={<Users className="h-3 w-3" />}>{s.usuarios} usuarios</Pill>
+              <Pill icon={<Tag className="h-3 w-3" />}>{s.lineasProducto.length} líneas</Pill>
               <Pill
                 icon={s.bovedaConfigurada ? <ShieldCheck className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
                 tone={s.bovedaConfigurada ? "ok" : "warn"}
@@ -273,7 +281,7 @@ export function ConfigSucursales() {
 
           <div className="grid grid-cols-1 gap-4 py-2 sm:grid-cols-2">
             <DetailField label="Empresa del grupo" icon={<Building className="h-3.5 w-3.5" />}>
-              <Select value={nueva.empresaId} onValueChange={(v) => setNueva((p) => ({ ...p, empresaId: v }))}>
+              <Select value={nueva.empresaId} onValueChange={(v) => setNueva((p) => ({ ...p, empresaId: v, lineas: [] }))}>
                 <SelectTrigger className="bg-secondary/40 h-9 text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {empresas.map((e) => (
@@ -322,6 +330,50 @@ export function ConfigSucursales() {
                 </SelectContent>
               </Select>
             </DetailField>
+
+            {/* Líneas de producto de la empresa, asignadas a la sucursal al crearla */}
+            <div className="sm:col-span-2">
+              <DetailField label="Líneas de producto" icon={<Tag className="h-3.5 w-3.5" />}>
+                {(() => {
+                  const disponibles = lineas.filter((l) => l.empresaId === nueva.empresaId)
+                  if (disponibles.length === 0) {
+                    return (
+                      <p className="text-muted-foreground bg-secondary/30 rounded-lg px-3 py-2 text-[11px]">
+                        Esta empresa aún no tiene líneas. Créalas en la sección <span className="text-foreground font-medium">Líneas de producto</span>.
+                      </p>
+                    )
+                  }
+                  return (
+                    <>
+                      <div className="flex flex-wrap gap-1.5">
+                        {disponibles.map((l) => {
+                          const on = nueva.lineas.includes(l.id)
+                          return (
+                            <button
+                              key={l.id}
+                              type="button"
+                              onClick={() =>
+                                setNueva((p) => ({
+                                  ...p,
+                                  lineas: on ? p.lineas.filter((x) => x !== l.id) : [...p.lineas, l.id],
+                                }))
+                              }
+                              className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${
+                                on ? "border-aura bg-aura/10 text-aura" : "border-border bg-secondary/30 text-muted-foreground hover:border-aura/40"
+                              }`}
+                            >
+                              <span className="h-2 w-2 rounded-full" style={{ background: l.color }} />
+                              {l.nombre}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      <p className="text-muted-foreground mt-1.5 text-[10px]">Solo las líneas asignadas aquí podrán darse a los usuarios y grupos de esta sucursal.</p>
+                    </>
+                  )
+                })()}
+              </DetailField>
+            </div>
           </div>
 
           <DialogFooter>
@@ -335,6 +387,56 @@ export function ConfigSucursales() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  )
+}
+
+const GUARDIANES = [
+  { id: "g1", name: "G1", fullName: "El Rescatista", icon: <Shield className="h-3.5 w-3.5" />, activeCls: "border-[#22c55e]/40 bg-[#22c55e]/10 text-[#22c55e]" },
+  { id: "g2", name: "G2", fullName: "Guardian de Pauta", icon: <Radio className="h-3.5 w-3.5" />, activeCls: "border-[#f97316]/40 bg-[#f97316]/10 text-[#f97316]" },
+  { id: "g4", name: "G4", fullName: "Guardian de Forecast", icon: <TrendingUp className="h-3.5 w-3.5" />, activeCls: "border-[#3b82f6]/40 bg-[#3b82f6]/10 text-[#3b82f6]" },
+] as const
+
+function GuardianesTab({ scopeLabel }: { scopeLabel: string }) {
+  const [active, setActive] = useState<"g1" | "g2" | "g4">("g1")
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-muted-foreground text-xs">
+        Configura cada guardian para <span className="text-foreground font-medium">{scopeLabel}</span>. Los parametros son independientes por sucursal.
+      </p>
+
+      {/* Pestana por guardian */}
+      <div className="border-border flex flex-wrap gap-1.5 border-b pb-3">
+        {GUARDIANES.map((g) => {
+          const isActive = active === g.id
+          return (
+            <button
+              key={g.id}
+              onClick={() => setActive(g.id)}
+              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
+                isActive ? g.activeCls : "border-border text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+              }`}
+            >
+              {g.icon}
+              {g.name}
+              <span className="hidden opacity-70 sm:inline">· {g.fullName}</span>
+            </button>
+          )
+        })}
+      </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={active}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.18 }}
+        >
+          <GuardiansFullConfig only={active} />
+        </motion.div>
+      </AnimatePresence>
     </div>
   )
 }

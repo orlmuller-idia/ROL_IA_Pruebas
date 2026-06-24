@@ -7,8 +7,16 @@ import {
   grupoEmpresarialSeed,
   usuariosSeed,
   gruposSeed,
+  lineasProductoSeed,
 } from "./config-types"
-import type { Empresa, Sucursal, GrupoEmpresarial, Usuario, GrupoUsuarios } from "./config-types"
+import type {
+  Empresa,
+  Sucursal,
+  GrupoEmpresarial,
+  Usuario,
+  GrupoUsuarios,
+  LineaProducto,
+} from "./config-types"
 
 /**
  * Store compartido del Centro de Configuracion (solo diseno / mock en memoria).
@@ -19,6 +27,7 @@ interface ConfigStore {
   empresas: Empresa[]
   setEmpresas: React.Dispatch<React.SetStateAction<Empresa[]>>
   addEmpresa: (e: Empresa) => void
+  removeEmpresa: (id: string) => void
 
   grupo: GrupoEmpresarial
   setGrupo: React.Dispatch<React.SetStateAction<GrupoEmpresarial>>
@@ -30,6 +39,15 @@ interface ConfigStore {
   sucursales: Sucursal[]
   setSucursales: React.Dispatch<React.SetStateAction<Sucursal[]>>
   addSucursal: (s: Sucursal) => void
+  updateSucursal: (id: string, patch: Partial<Sucursal>) => void
+  removeSucursal: (id: string) => void
+
+  /* Líneas de producto (a nivel de empresa). */
+  lineas: LineaProducto[]
+  setLineas: React.Dispatch<React.SetStateAction<LineaProducto[]>>
+  addLinea: (l: LineaProducto) => void
+  updateLinea: (id: string, patch: Partial<LineaProducto>) => void
+  removeLinea: (id: string) => void
 
   usuarios: Usuario[]
   setUsuarios: React.Dispatch<React.SetStateAction<Usuario[]>>
@@ -45,6 +63,7 @@ export function ConfigStoreProvider({ children }: { children: ReactNode }) {
   const [grupo, setGrupo] = useState<GrupoEmpresarial>(grupoEmpresarialSeed)
   const [empresasDelGrupo, setEmpresasDelGrupo] = useState<string[]>(empresasSeed.map((e) => e.id))
   const [sucursales, setSucursales] = useState<Sucursal[]>(sucursalesSeed)
+  const [lineas, setLineas] = useState<LineaProducto[]>(lineasProductoSeed)
   const [usuarios, setUsuarios] = useState<Usuario[]>(usuariosSeed)
   const [gruposUsuarios, setGruposUsuarios] = useState<GrupoUsuarios[]>(gruposSeed)
 
@@ -54,13 +73,50 @@ export function ConfigStoreProvider({ children }: { children: ReactNode }) {
     setEmpresasDelGrupo((prev) => [...prev, e.id])
   }, [])
 
+  // Eliminar empresa = limpieza en cascada del mock (sucursales, líneas y pertenencia al grupo).
+  const removeEmpresa = useCallback((id: string) => {
+    setEmpresas((prev) => prev.filter((e) => e.id !== id))
+    setSucursales((prev) => prev.filter((s) => s.empresaId !== id))
+    setLineas((prev) => prev.filter((l) => l.empresaId !== id))
+    setEmpresasDelGrupo((prev) => prev.filter((eid) => eid !== id))
+  }, [])
+
   const addSucursal = useCallback((s: Sucursal) => {
     setSucursales((prev) => [...prev, s])
   }, [])
 
-  const toggleEmpresaEnGrupo = useCallback((id: string) => {
-    setEmpresasDelGrupo((prev) =>
-      prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id],
+  const updateSucursal = useCallback((id: string, patch: Partial<Sucursal>) => {
+    setSucursales((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)))
+  }, [])
+
+  // Eliminar sucursal: la quita y limpia grupos en esa sede y el acceso de los usuarios.
+  const removeSucursal = useCallback((id: string) => {
+    setSucursales((prev) => prev.filter((s) => s.id !== id))
+    setGruposUsuarios((prev) => prev.filter((g) => g.sucursalId !== id))
+    setUsuarios((prev) =>
+      prev.map((u) => ({ ...u, sucursales: u.sucursales.filter((sid) => sid !== id) })),
+    )
+  }, [])
+
+  const addLinea = useCallback((l: LineaProducto) => {
+    setLineas((prev) => [...prev, l])
+  }, [])
+
+  const updateLinea = useCallback((id: string, patch: Partial<LineaProducto>) => {
+    setLineas((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)))
+  }, [])
+
+  // Eliminar línea: la quita y la remueve de sucursales, grupos y usuarios que la tuvieran.
+  const removeLinea = useCallback((id: string) => {
+    setLineas((prev) => prev.filter((l) => l.id !== id))
+    setSucursales((prev) =>
+      prev.map((s) => ({ ...s, lineasProducto: s.lineasProducto.filter((lid) => lid !== id) })),
+    )
+    setGruposUsuarios((prev) =>
+      prev.map((g) => ({ ...g, lineasProducto: g.lineasProducto.filter((lid) => lid !== id) })),
+    )
+    setUsuarios((prev) =>
+      prev.map((u) => ({ ...u, lineasProducto: u.lineasProducto.filter((lid) => lid !== id) })),
     )
   }, [])
 
@@ -70,14 +126,26 @@ export function ConfigStoreProvider({ children }: { children: ReactNode }) {
         empresas,
         setEmpresas,
         addEmpresa,
+        removeEmpresa,
         grupo,
         setGrupo,
         empresasDelGrupo,
-        toggleEmpresaEnGrupo,
+        toggleEmpresaEnGrupo: useCallback((id: string) => {
+          setEmpresasDelGrupo((prev) =>
+            prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id],
+          )
+        }, []),
         setEmpresasDelGrupo,
         sucursales,
         setSucursales,
         addSucursal,
+        updateSucursal,
+        removeSucursal,
+        lineas,
+        setLineas,
+        addLinea,
+        updateLinea,
+        removeLinea,
         usuarios,
         setUsuarios,
         gruposUsuarios,

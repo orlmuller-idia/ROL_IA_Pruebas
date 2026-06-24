@@ -12,36 +12,32 @@ import {
   User,
   IdCard,
   Bot,
-  Shield,
-  Radio,
-  TrendingUp,
   Search,
   ChevronRight,
   SlidersHorizontal,
   Bell,
+  Tag,
 } from "lucide-react"
 import { ConfigEmpresa } from "./config-empresa"
 import { ConfigGrupo } from "./config-grupo"
 import { ConfigSucursales } from "./config-sucursales"
+import { ConfigLineas } from "./config-lineas"
 import { ConfigUsuarios } from "./config-usuarios"
 import { ConfigAsistentes } from "./config-asistentes"
 import { ConfigPerfiles } from "./config-perfiles"
 import { ConfigNotificaciones } from "./config-notificaciones"
-import { GuardiansFullConfig } from "@/components/guardians-full-config"
 import { ConfigStoreProvider } from "./config-store"
 
 type SectionId =
   | "empresa"
   | "grupo"
   | "sucursales"
+  | "lineas"
   | "usuarios"
   | "grupos"
   | "perfiles"
   | "asistentes"
   | "notificaciones"
-  | "g1"
-  | "g2"
-  | "g4"
 
 interface SectionDef {
   id: SectionId
@@ -57,23 +53,20 @@ const SECTIONS: SectionDef[] = [
   { id: "empresa", label: "Empresas", icon: <Building2 className="h-4 w-4" />, description: "Crea y administra las empresas del grupo: identidad, zona horaria y moneda base.", grupo: "Organizacion", jerarquia: 0 },
   { id: "grupo", label: "Grupo y Facturacion", icon: <Network className="h-4 w-4" />, description: "Define que empresas integran el grupo y su esquema de facturacion (consolidada o por empresa).", grupo: "Organizacion", jerarquia: 1 },
   { id: "sucursales", label: "Sucursales", icon: <MapPin className="h-4 w-4" />, description: "Pais, ciudad, idioma, moneda y boveda de seguridad por sede, asignada a su empresa.", grupo: "Organizacion", jerarquia: 2 },
+  { id: "lineas", label: "Lineas de producto", icon: <Tag className="h-4 w-4" />, description: "Lineas de producto por empresa; se asignan a las sucursales al crearlas.", grupo: "Organizacion", jerarquia: 3 },
   { id: "usuarios", label: "Usuarios", icon: <User className="h-4 w-4" />, description: "Usuarios y sus accesos a empresas, sucursales y lineas de producto.", grupo: "Personas", jerarquia: 2 },
   { id: "grupos", label: "Grupos", icon: <Users className="h-4 w-4" />, description: "Grupos que asignan lineas de producto a varios usuarios a la vez.", grupo: "Personas", jerarquia: 3 },
   { id: "perfiles", label: "Perfiles", icon: <IdCard className="h-4 w-4" />, description: "Perfiles de gobernanza Global / Equipo / Personal.", grupo: "Personas", jerarquia: 4 },
   { id: "asistentes", label: "Asistentes (Jarvis)", icon: <Bot className="h-4 w-4" />, description: "Un asistente IA por perfil, con capacidades y reglas configurables.", grupo: "Personas", jerarquia: 5, badge: "IA" },
   { id: "notificaciones", label: "Notificaciones e Integraciones", icon: <Bell className="h-4 w-4" />, description: "Canales por donde Rol te avisa (email, WhatsApp, Slack, Teams) e integraciones a medida segun tu plan.", grupo: "Organizacion", jerarquia: 3 },
-  { id: "g1", label: "G1 · El Rescatista", icon: <Shield className="h-4 w-4" />, description: "Rescata leads abandonados, define el proceso de venta y el semaforo de abandono.", grupo: "Guardianes", jerarquia: 0 },
-  { id: "g2", label: "G2 · Guardian de Pauta", icon: <Radio className="h-4 w-4" />, description: "Vigila el ROAS por campana (Meta/Google) y pausa la pauta ineficiente.", grupo: "Guardianes", jerarquia: 1 },
-  { id: "g4", label: "G4 · Guardian de Forecast", icon: <TrendingUp className="h-4 w-4" />, description: "Proyecta la cobertura de la meta de ventas y emite alertas tempranas.", grupo: "Guardianes", jerarquia: 2 },
 ]
 
-const GRUPOS = ["Organizacion", "Personas", "Guardianes"]
+const GRUPOS = ["Organizacion", "Personas"]
 
 // Acento visual por grupo de configuracion
 const GRUPO_ACCENT: Record<string, { bg: string; text: string; dot: string }> = {
   Organizacion: { bg: "bg-info/10", text: "text-info", dot: "bg-info" },
   Personas: { bg: "bg-aura/10", text: "text-aura", dot: "bg-aura" },
-  Guardianes: { bg: "bg-rescue/10", text: "text-rescue", dot: "bg-rescue" },
 }
 
 export function ConfigCenter() {
@@ -188,14 +181,12 @@ export function ConfigCenter() {
                 {active === "empresa" && <ConfigEmpresa />}
                 {active === "grupo" && <ConfigGrupo />}
                 {active === "sucursales" && <ConfigSucursales />}
+                {active === "lineas" && <ConfigLineas />}
                 {active === "usuarios" && <ConfigUsuarios soloVista="usuarios" />}
                 {active === "grupos" && <ConfigUsuarios soloVista="grupos" />}
                 {active === "perfiles" && <ConfigPerfiles />}
                 {active === "asistentes" && <ConfigAsistentes />}
                 {active === "notificaciones" && <ConfigNotificaciones />}
-                {active === "g1" && <GuardiansFullConfig only="g1" />}
-                {active === "g2" && <GuardiansFullConfig only="g2" />}
-                {active === "g4" && <GuardiansFullConfig only="g4" />}
               </motion.div>
             </AnimatePresence>
           </div>

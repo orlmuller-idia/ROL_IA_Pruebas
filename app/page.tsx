@@ -1,117 +1,68 @@
-"use client"
+import type { Metadata } from "next"
+import { Landing } from "@/components/landing/landing"
 
-import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Menu } from "lucide-react"
-import { LoginScreen } from "@/components/login-screen"
-import { HelpPanel } from "@/components/help-panel"
-import { RolIcon } from "@/components/rol-logo"
-import { ProfileProvider } from "@/contexts/profile-context"
-import { OnboardingProvider } from "@/contexts/onboarding-context"
-import { DateRangeProvider } from "@/contexts/date-range-context"
-import { VersionProvider } from "@/lib/versioning"
-import { VersionSelector } from "@/components/version-selector"
-import { ProfileSelector } from "@/components/profile-selector"
-import { OnboardingToggle } from "@/components/onboarding-toggle"
-import { JarvisAssistant } from "@/components/jarvis-assistant"
-import { OnboardingTour } from "@/components/onboarding-tour"
-import { ConfigCenter } from "@/components/config/config-center"
-import { AppSidebar, type ActiveView } from "@/components/app-sidebar"
-import { ChatHome } from "@/components/chat-home"
-import { ReportView } from "@/components/report-view"
+export const metadata: Metadata = {
+  title: { absolute: "Rol.IA — Inteligencia comercial autónoma | Guardianes de IA" },
+  description:
+    "Rol.IA vigila tu pauta, diagnostica por qué no cierras y proyecta tus ventas en tiempo real. Tus guardianes de IA cuidan el embudo 24/7 — y tú decides cuándo dejan de observar y empiezan a actuar.",
+  keywords: [
+    "inteligencia comercial",
+    "IA marketing digital",
+    "automatización de ventas",
+    "optimización de pauta",
+    "diagnóstico de leads",
+    "proyección de ventas",
+    "ROAS",
+    "agencias de marketing",
+    "Rol.IA",
+    "IDIA",
+  ],
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: "Rol.IA",
+    locale: "es_ES",
+    url: "/",
+    title: "Rol.IA — Inteligencia comercial autónoma",
+    description:
+      "Tus guardianes de IA vigilan tu pauta, tus leads y tus cierres 24/7. Tú decides cuándo dejan de observar y empiezan a actuar.",
+    images: [{ url: "/rolia-mark.png", alt: "Rol.IA — hub neural de inteligencia comercial" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Rol.IA — Inteligencia comercial autónoma",
+    description:
+      "Tus guardianes de IA vigilan tu pauta, tus leads y tus cierres 24/7. Tú decides cuándo actúan.",
+    images: ["/rolia-mark.png"],
+  },
+}
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Rol.IA",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  url: "https://rolia.idiasolutions.com/",
+  description:
+    "Plataforma de inteligencia comercial con guardianes de IA que monitorean la pauta, diagnostican fugas de conversión y proyectan ventas en tiempo real, con gobernanza humana.",
+  inLanguage: "es",
+  publisher: {
+    "@type": "Organization",
+    name: "IDIA Solutions",
+    url: "https://rolia.idiasolutions.com/",
+  },
+  offers: { "@type": "Offer", category: "SaaS" },
+}
 
 export default function Home() {
-  const [authenticated, setAuthenticated] = useState(false)
-  const [view, setView] = useState<ActiveView>({ type: "home" })
-  const [mobileNavOpen, setMobileNavOpen] = useState(false)
-
   return (
-    <AnimatePresence mode="wait">
-      {!authenticated ? (
-        <motion.div key="login" exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.3 }}>
-          <LoginScreen onAuthenticated={() => setAuthenticated(true)} />
-        </motion.div>
-      ) : (
-        <ProfileProvider>
-          <OnboardingProvider>
-            <VersionProvider>
-            <DateRangeProvider>
-            <motion.div
-              key="dashboard"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.4 }}
-              className="bg-background text-foreground flex h-screen overflow-hidden"
-            >
-              {/* Sidebar izquierdo con menus desplegables + onboarding */}
-              <AppSidebar
-                active={view}
-                onNavigate={setView}
-                mobileOpen={mobileNavOpen}
-                onMobileClose={() => setMobileNavOpen(false)}
-              />
-
-              {/* Columna principal */}
-              <div className="flex min-w-0 flex-1 flex-col">
-                {/* Topbar */}
-                <header className="border-border bg-card/80 sticky top-0 z-40 flex items-center justify-between gap-2 border-b px-3 py-2.5 backdrop-blur-xl sm:px-5">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <button
-                      onClick={() => setMobileNavOpen(true)}
-                      className="hover:bg-muted rounded-lg p-2 lg:hidden"
-                      aria-label="Abrir menu"
-                    >
-                      <Menu className="text-muted-foreground h-5 w-5" />
-                    </button>
-                    <span className="text-muted-foreground truncate text-[11px] font-medium">
-                      {view.type === "home"
-                        ? "Inicio · Conversacion con tu agente"
-                        : view.type === "config"
-                          ? "Configuracion del sistema"
-                          : "Reporte de inteligencia"}
-                    </span>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-                    <OnboardingToggle />
-                    <div className="bg-border hidden h-6 w-px sm:block" />
-                    <VersionSelector />
-                    <div className="bg-border hidden h-6 w-px sm:block" />
-                    <ProfileSelector />
-                    <div className="bg-border hidden h-6 w-px sm:block" />
-                    <HelpPanel />
-                  </div>
-                </header>
-
-                {/* Contenido */}
-                <main className="flex-1 overflow-y-auto">
-                  <AnimatePresence mode="wait">
-                    {view.type === "home" && <ChatHome key="home" onNavigate={setView} />}
-                    {view.type === "report" && <ReportView key={view.id} id={view.id} onNavigate={setView} />}
-                    {view.type === "config" && (
-                      <motion.div
-                        key="config"
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6"
-                      >
-                        <ConfigCenter />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </main>
-              </div>
-
-              {/* Asistente flotante */}
-              <JarvisAssistant />
-
-              {/* Paseo guiado por el sistema (modo explicativo) */}
-              <OnboardingTour onNavigate={setView} />
-            </motion.div>
-            </DateRangeProvider>
-            </VersionProvider>
-          </OnboardingProvider>
-        </ProfileProvider>
-      )}
-    </AnimatePresence>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <Landing />
+    </>
   )
 }

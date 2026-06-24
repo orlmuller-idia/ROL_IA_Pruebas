@@ -8,8 +8,12 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Rol.IA - Centro de Comando',
-  description: 'La IA no piensa por uno, piensa con uno - 7 Guardianes Autonomos para tu negocio',
+  metadataBase: new URL('https://rolia.idiasolutions.com'),
+  title: {
+    default: 'Rol.IA — Inteligencia comercial autónoma',
+    template: '%s · Rol.IA',
+  },
+  description: 'La IA no piensa por uno, piensa con uno. Inteligencia comercial autónoma con guardianes de IA que vigilan tu embudo 24/7.',
   generator: 'v0.app',
   icons: {
     icon: [

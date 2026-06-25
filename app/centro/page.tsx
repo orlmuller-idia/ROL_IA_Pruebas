@@ -10,6 +10,7 @@ import { HelpPanel } from "@/components/help-panel"
 import { ProfileProvider } from "@/contexts/profile-context"
 import { OnboardingProvider } from "@/contexts/onboarding-context"
 import { DateRangeProvider } from "@/contexts/date-range-context"
+import { ForecastProvider } from "@/contexts/forecast-context"
 import { VersionProvider } from "@/lib/versioning"
 import { VersionSelector } from "@/components/version-selector"
 import { ProfileSelector } from "@/components/profile-selector"
@@ -53,6 +54,7 @@ export default function Centro() {
           <OnboardingProvider>
             <VersionProvider>
             <DateRangeProvider>
+            <ForecastProvider>
             <motion.div
               key="dashboard"
               initial={{ opacity: 0 }}
@@ -124,6 +126,7 @@ export default function Centro() {
               {/* Paseo guiado por el sistema (modo explicativo) */}
               <OnboardingTour onNavigate={setView} />
             </motion.div>
+            </ForecastProvider>
             </DateRangeProvider>
             </VersionProvider>
           </OnboardingProvider>

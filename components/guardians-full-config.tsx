@@ -32,6 +32,7 @@ import {
 } from "lucide-react"
 import { G1SalesProcess } from "@/components/g1-sales-process"
 import { ConfigPauta } from "@/components/config/config-pauta"
+import { G4ForecastConfig } from "@/components/g4-forecast-config"
 
 interface GuardianDef {
   id: string
@@ -117,7 +118,10 @@ const categoryLabels = {
 }
 
 export function GuardiansFullConfig({ only }: { only?: string } = {}) {
-  const visibleGuardians = only ? guardians.filter((g) => g.id === only) : guardians
+  // G4 tiene una configuracion dedicada (meta por linea/mes + lineas del modelo),
+  // por eso no se muestra como tarjeta de parametros simple.
+  const visibleGuardians =
+    only === "g4" ? [] : only ? guardians.filter((g) => g.id === only) : guardians
   const [enabledGuardians, setEnabledGuardians] = useState<Record<string, boolean>>(
     guardians.reduce((acc, g) => ({ ...acc, [g.id]: g.defaultEnabled }), {})
   )
@@ -181,6 +185,8 @@ export function GuardiansFullConfig({ only }: { only?: string } = {}) {
             <ConfigPauta />
           </div>
         )}
+
+        {only === "g4" && <G4ForecastConfig />}
 
         {/* Guardian Grid */}
         <div className={`grid grid-cols-1 gap-3 ${only ? "" : "lg:grid-cols-2 xl:grid-cols-3"}`}>
@@ -298,6 +304,7 @@ export function GuardiansFullConfig({ only }: { only?: string } = {}) {
         </div>
 
         {/* Save Button */}
+        {only !== "g4" && (
         <div className="flex items-center justify-between rounded-lg border border-border/30 bg-secondary/30 px-4 py-3">
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-[#eab308]" />
@@ -308,6 +315,7 @@ export function GuardiansFullConfig({ only }: { only?: string } = {}) {
             Guardar Configuracion
           </Button>
         </div>
+        )}
       </div>
     </TooltipProvider>
   )

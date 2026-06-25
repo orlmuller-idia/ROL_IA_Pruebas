@@ -4,6 +4,13 @@ import { useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   ComposedChart,
   Area,
   Line,
@@ -14,56 +21,29 @@ import {
   Tooltip,
   Legend,
 } from "recharts"
-import { TrendingUp, Target, AlertTriangle, Gauge, Zap } from "lucide-react"
+import { TrendingUp, Target, AlertTriangle, Gauge, Zap, Sparkles, Filter } from "lucide-react"
 import { useProfile } from "@/contexts/profile-context"
 import type { ProfileLevel } from "@/contexts/profile-context"
 import { ReportViewToggle } from "@/components/report-view-toggle"
 import { useDateRange } from "@/contexts/date-range-context"
-import { resampleSeries, type Period } from "@/lib/date-range"
+import { useForecast } from "@/contexts/forecast-context"
+import {
+  buildForecastSeries,
+  sumForecastSeries,
+  buildPredictionAnalysis,
+  type ScenarioId,
+  type ForecastPoint,
+  type PredictionInsight,
+} from "@/lib/forecast-model"
 
 /**
- * Predictor de Metas (Predictivo)
- * Vista acumulada dia a dia con banda de negocio (optimista / pesimista) y meta.
- * Se adapta al nivel de perfil siguiendo el principio "de lo general a lo particular":
- *  - macro: lectura ejecutiva -> meta, proyeccion esperada, brecha, % cumplimiento + grafico acumulado.
- *  - meso: gerencial -> grafico + indicadores clave del cierre + plan de accion semanal.
- *  - micro: operativo -> SUS leads en proceso con probabilidad de cierre y accion sugerida.
+ * Predictor de Metas (G4).
+ * Meta por LINEA y por MES (configurable en G4). El grafico se filtra por linea
+ * (o consolidado de las lineas activas) y la seccion de analisis explica el
+ * porque de cada escenario (optimista / normal / pesimista) como soporte verbal.
  */
 
-const MONTHLY_GOAL = 150_000_000 // COP $150M
-
-interface DayPoint {
-  date: string
-  historico?: number
-  esperado: number
-  pesimista: number
-  optimista: number
-}
-
-/* Curvas base (en millones COP) que se re-muestrean a los periodos del rango */
-const HISTORICO_BASE = [20, 20, 18, 22, 30, 48, 78, 92, 110, 138, 152, 170, 192]
-const ESPERADO_BASE = [16, 18, 14, 20, 28, 38, 48, 58, 70, 82, 92, 102, 112]
-const PESIMISTA_BASE = [16, 16, 10, 16, 22, 28, 36, 42, 50, 52, 60, 66, 84]
-const OPTIMISTA_BASE = [18, 22, 16, 26, 38, 50, 64, 80, 96, 114, 126, 140, 150]
-
-/* Serie acumulada re-alineada a los periodos del rango elegido (eje X claro) */
-function buildSeries(periods: Period[]): DayPoint[] {
-  const n = Math.max(periods.length, 1)
-  const historico = resampleSeries(HISTORICO_BASE, n)
-  const esperado = resampleSeries(ESPERADO_BASE, n)
-  const pesimista = resampleSeries(PESIMISTA_BASE, n)
-  const optimista = resampleSeries(OPTIMISTA_BASE, n)
-  // El historico (real) solo llega hasta "hoy": ~72% del periodo
-  const histCount = Math.max(1, Math.round(n * 0.72))
-
-  return periods.map((p, i) => ({
-    date: p.label,
-    historico: i < histCount ? Math.round(historico[i]) : undefined,
-    esperado: Math.round(esperado[i]),
-    pesimista: Math.round(pesimista[i]),
-    optimista: Math.round(optimista[i]),
-  })) as DayPoint[]
-}
+const CONSOLIDADO = "consolidado"
 
 interface LeadRow {
   id: string
@@ -132,8 +112,7 @@ const LEADS: LeadRow[] = [
     cierreP50: "2026-06-25",
     queFalta: "Valor alto en propuesta; falta validar autoridad de compra.",
     accionLabel: "Confirmar decisor",
-    accionSugerida:
-      "Sonia debe pedir reunion con el decisor para cerrar respuesta sobre alcance.",
+    accionSugerida: "Sonia debe pedir reunion con el decisor para cerrar respuesta sobre alcance.",
     owner: "Laura Garcia",
   },
 ]
@@ -145,7 +124,7 @@ interface ActionItem {
 
 const ACTION_PLAN: ActionItem[] = [
   {
-    title: "Riesgo de incumplimiento proyectado ($856.383 por cubrir)",
+    title: "Riesgo de incumplimiento proyectado",
     body: "La estimacion actual esta por debajo de la meta y el crecimiento es fragil si descuidamos las horas pico. No capitalizar los cierres de mayor conversion diluira el avance acumulado y obligara al equipo a depender de cierres de ultima hora bajo presion.",
   },
   {
@@ -190,22 +169,97 @@ function probBadgeClass(prob: LeadRow["prob"]) {
   return "border-alert/40 text-alert bg-alert/10"
 }
 
+/* ── Analisis de la prediccion ── */
+
+const TONE_STYLES: Record<PredictionInsight["tone"], { card: string; title: string }> = {
+  positive: { card: "border-rescue/30 bg-rescue/5", title: "text-rescue" },
+  info: { card: "border-info/30 bg-info/5", title: "text-info" },
+  warning: { card: "border-warning/30 bg-warning/5", title: "text-warning" },
+}
+
+function InsightCard({ insight }: { insight: PredictionInsight }) {
+  const tone = TONE_STYLES[insight.tone]
+  return (
+    <div className={`flex flex-col gap-2 rounded-xl border p-4 ${tone.card}`}>
+      <span className={`text-sm font-semibold ${tone.title}`}>{insight.title}</span>
+      <div className="flex flex-col gap-1.5">
+        {insight.paragraphs.map((p, i) => (
+          <p key={i} className="text-foreground/80 text-xs leading-relaxed">
+            {p}
+          </p>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+const SCENARIOS: { id: ScenarioId; label: string; cls: string }[] = [
+  { id: "optimista", label: "Optimista", cls: "border-info/40 bg-info/10 text-info" },
+  { id: "esperado", label: "Normal", cls: "border-rescue/40 bg-rescue/10 text-rescue" },
+  { id: "pesimista", label: "Pesimista", cls: "border-warning/40 bg-warning/10 text-warning" },
+]
+
 export function IntelGoalPredictor() {
   const { currentProfile } = useProfile()
   const [viewOverride, setViewOverride] = useState<ProfileLevel | null>(null)
   const level = viewOverride ?? currentProfile.level
   const { periods, selectionLabel } = useDateRange()
-  const data = useMemo(() => buildSeries(periods), [periods])
+  const { lines, activeLineIds, getGoal, goalForMonth, activeMonth, months, year } = useForecast()
 
-  // Proyeccion de cierre = ultimo punto esperado
-  const projected = data[data.length - 1].esperado * 1_000_000 // a COP
-  const optimistic = data[data.length - 1].optimista * 1_000_000
-  const pessimistic = data[data.length - 1].pesimista * 1_000_000
-  // Para reflejar las imagenes: proyeccion esperada ~149.143.617
-  const projectedReal = 149_143_617
-  const gap = MONTHLY_GOAL - projectedReal
-  const pct = Math.round((projectedReal / MONTHLY_GOAL) * 100)
-  const belowGoal = projectedReal < MONTHLY_GOAL
+  // Filtro de linea del grafico (consolidado o una linea activa).
+  const [lineFilter, setLineFilter] = useState<string>(CONSOLIDADO)
+  // Escenario en foco para el analisis de la prediccion.
+  const [scenario, setScenario] = useState<ScenarioId>("esperado")
+
+  const activeLines = useMemo(
+    () => lines.filter((l) => activeLineIds.includes(l.id)),
+    [lines, activeLineIds],
+  )
+
+  // Si la linea filtrada deja de estar activa, volvemos a consolidado.
+  const effectiveFilter =
+    lineFilter !== CONSOLIDADO && !activeLineIds.includes(lineFilter) ? CONSOLIDADO : lineFilter
+
+  const labels = useMemo(() => periods.map((p) => p.label), [periods])
+
+  // Meta del periodo segun el filtro.
+  const metaCOP =
+    effectiveFilter === CONSOLIDADO
+      ? goalForMonth(activeMonth)
+      : getGoal(effectiveFilter, activeMonth)
+
+  // Serie acumulada (en millones) segun el filtro.
+  const data = useMemo<ForecastPoint[]>(() => {
+    if (effectiveFilter === CONSOLIDADO) {
+      const perLine = activeLines.map((l) => buildForecastSeries(labels, getGoal(l.id, activeMonth)))
+      return perLine.length ? sumForecastSeries(perLine) : buildForecastSeries(labels, 0)
+    }
+    return buildForecastSeries(labels, metaCOP)
+  }, [effectiveFilter, activeLines, labels, getGoal, activeMonth, metaCOP])
+
+  const last = data[data.length - 1] ?? { esperado: 0, optimista: 0, pesimista: 0, date: "" }
+  const projected = last.esperado * 1_000_000
+  const optimistic = last.optimista * 1_000_000
+  const pessimistic = last.pesimista * 1_000_000
+  const gap = metaCOP - projected
+  const pct = metaCOP > 0 ? Math.round((projected / metaCOP) * 100) : 0
+  const belowGoal = projected < metaCOP
+
+  const metaM = metaCOP / 1_000_000
+  const yMax = Math.max(10, Math.ceil((metaM * 1.2) / 10) * 10)
+
+  const filterLabel =
+    effectiveFilter === CONSOLIDADO
+      ? "Consolidado"
+      : (lines.find((l) => l.id === effectiveFilter)?.nombre ?? "Linea")
+  const lineaNombre = effectiveFilter === CONSOLIDADO ? "el portafolio" : filterLabel
+  const mesLabel = months[activeMonth]?.label ?? ""
+  const mesLabelCap = mesLabel.charAt(0).toUpperCase() + mesLabel.slice(1)
+
+  const insights = useMemo(
+    () => buildPredictionAnalysis(scenario, lineaNombre, metaCOP, mesLabelCap, year),
+    [scenario, lineaNombre, metaCOP, mesLabelCap, year],
+  )
 
   // Leads visibles segun nivel (micro = solo los del asesor)
   const visibleLeads = useMemo(() => {
@@ -259,7 +313,8 @@ export function IntelGoalPredictor() {
           }`}
         >
           <p className="text-foreground text-xs leading-relaxed">
-            La lectura actual ubica el cierre esperado{" "}
+            Para <span className="font-semibold">{filterLabel}</span> en{" "}
+            <span className="font-semibold capitalize">{mesLabel}</span>, la lectura actual ubica el cierre esperado{" "}
             <span className={`font-semibold ${belowGoal ? "text-alert" : "text-rescue"}`}>
               {formatCOP(Math.abs(gap))} {belowGoal ? "por debajo de la meta" : "por encima de la meta"}
             </span>
@@ -273,26 +328,63 @@ export function IntelGoalPredictor() {
         {/* ═══════════ MACRO: KPIs ejecutivos ═══════════ */}
         {level === "macro" && (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <KpiCard label="Meta del mes" value={formatCOP(MONTHLY_GOAL)} />
-            <KpiCard label="Proyeccion esperada" value={formatCOP(projectedReal)} accent="rescue" />
-            <KpiCard label="Brecha contra meta" value={formatCOP(gap)} accent={belowGoal ? "alert" : "rescue"} />
-            <KpiCard label="% de cumplimiento" value={`${pct}%`} accent={belowGoal ? "alert" : "rescue"} />
+            <KpiCard label="Meta del mes" value={formatCOP(metaCOP)} />
+            <KpiCard label="Proyeccion esperada" value={formatCOP(projected)} accent="rescue" />
+            <KpiCard
+              label="Brecha contra meta"
+              value={formatCOP(gap)}
+              accent={belowGoal ? "alert" : "rescue"}
+            />
+            <KpiCard
+              label="% de cumplimiento"
+              value={`${pct}%`}
+              accent={belowGoal ? "alert" : "rescue"}
+            />
           </div>
         )}
 
         {/* ═══════════ Grafico acumulado (macro + meso) ═══════════ */}
         {level !== "micro" && (
           <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-0.5">
-              <h4 className="text-foreground text-sm font-semibold">Historico y prediccion acumulada de ventas</h4>
-              <p className="text-muted-foreground text-[11px]">
-                Vista acumulada construida desde el total vendido y banda de negocio optimista-pesimista.
-                <span className="text-foreground/70"> Periodo: {selectionLabel}.</span>
-              </p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div className="flex flex-col gap-0.5">
+                <h4 className="text-foreground text-sm font-semibold">
+                  Historico y prediccion acumulada de ventas
+                </h4>
+                <p className="text-muted-foreground text-[11px]">
+                  Vista acumulada con banda de negocio optimista-pesimista.
+                  <span className="text-foreground/70"> Periodo: {selectionLabel}.</span>
+                </p>
+              </div>
+              {/* Filtro por linea */}
+              <div className="flex items-center gap-2">
+                <Filter className="text-muted-foreground h-3.5 w-3.5" />
+                <Select value={effectiveFilter} onValueChange={setLineFilter}>
+                  <SelectTrigger className="bg-secondary/40 h-8 w-48 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={CONSOLIDADO} className="text-xs">
+                      Consolidado ({activeLines.length} lineas)
+                    </SelectItem>
+                    {activeLines.map((l) => (
+                      <SelectItem key={l.id} value={l.id} className="text-xs">
+                        <span className="flex items-center gap-2">
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{ background: l.color }}
+                          />
+                          {l.nombre}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={data}>
+                <ComposedChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
                   <defs>
                     <linearGradient id="bandGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#10b981" stopOpacity={0.22} />
@@ -314,9 +406,9 @@ export function IntelGoalPredictor() {
                     tickLine={false}
                     axisLine={false}
                     tickFormatter={(v) => `$${v}M`}
-                    domain={[0, 210]}
-                    width={44}
-                    tickCount={8}
+                    domain={[0, yMax]}
+                    width={48}
+                    tickCount={7}
                   />
                   <Tooltip
                     contentStyle={{
@@ -328,11 +420,7 @@ export function IntelGoalPredictor() {
                     }}
                     formatter={(v: number, name: string) => [`COP $${v}M`, name]}
                   />
-                  <Legend
-                    wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
-                    iconType="line"
-                  />
-                  {/* Banda de negocio: relleno entre pesimista y optimista */}
+                  <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} iconType="line" />
                   <Area
                     type="monotone"
                     dataKey="optimista"
@@ -371,15 +459,68 @@ export function IntelGoalPredictor() {
                     connectNulls={false}
                   />
                   <ReferenceLine
-                    y={MONTHLY_GOAL / 1_000_000}
+                    y={metaM}
                     stroke="#ef4444"
                     strokeDasharray="6 3"
                     strokeWidth={1.5}
-                    label={{ value: "Meta", position: "right", fill: "#ef4444", fontSize: 10 }}
+                    label={{
+                      value: `Meta $${Math.round(metaM)}M`,
+                      position: "insideTopRight",
+                      fill: "#ef4444",
+                      fontSize: 10,
+                    }}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
+          </div>
+        )}
+
+        {/* ═══════════ Analisis de la prediccion (macro + meso) ═══════════ */}
+        {level !== "micro" && (
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                <div className="bg-aura/10 flex h-7 w-7 items-center justify-center rounded-lg">
+                  <Sparkles className="text-aura h-4 w-4" />
+                </div>
+                <div className="flex flex-col">
+                  <h4 className="text-foreground text-sm font-semibold">Analisis de la prediccion</h4>
+                  <p className="text-muted-foreground text-[11px]">
+                    Soporte verbal de la IA: por que el modelo proyecta este escenario para {filterLabel}.
+                  </p>
+                </div>
+              </div>
+              {/* Selector de escenario */}
+              <div className="flex items-center gap-1.5">
+                {SCENARIOS.map((s) => {
+                  const isActive = scenario === s.id
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => setScenario(s.id)}
+                      className={`rounded-lg border px-3 py-1.5 text-[11px] font-medium transition-all ${
+                        isActive
+                          ? s.cls
+                          : "border-border text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+              {insights.map((insight) => (
+                <InsightCard key={insight.id} insight={insight} />
+              ))}
+            </div>
+            <p className="text-muted-foreground/70 text-[10px]">
+              Generado por la IA de Rol.IA a partir del historico y la meta configurada en G4. Es un
+              apoyo interpretativo, no sustituye el criterio comercial.
+            </p>
           </div>
         )}
 
@@ -394,7 +535,7 @@ export function IntelGoalPredictor() {
                 </span>
                 <span className="text-foreground font-mono text-2xl font-bold">6.6%</span>
                 <span className="text-muted-foreground text-[11px] leading-snug">
-                  Error monetario estimado: $4.994.244
+                  Error monetario estimado: {formatCOP(projected * 0.066)}
                 </span>
               </div>
               <div className="bg-secondary/40 border-border/40 flex flex-col gap-1.5 rounded-lg border p-4">
@@ -428,7 +569,9 @@ export function IntelGoalPredictor() {
         {/* ═══════════ MESO: plan de accion semanal ═══════════ */}
         {level === "meso" && (
           <div className="flex flex-col gap-3">
-            <h4 className="text-foreground text-sm font-semibold">Plan de accion semanal: recuperar la meta</h4>
+            <h4 className="text-foreground text-sm font-semibold">
+              Plan de accion semanal: recuperar la meta
+            </h4>
             <div className="flex flex-col gap-2.5">
               {ACTION_PLAN.map((item) => (
                 <div

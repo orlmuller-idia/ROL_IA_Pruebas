@@ -56,6 +56,7 @@ export default function Centro() {
             <VersionProvider>
             <DateRangeProvider>
             <ForecastProvider>
+            <SpeechConfigProvider>
             <motion.div
               key="dashboard"
               initial={{ opacity: 0 }}
@@ -127,6 +128,7 @@ export default function Centro() {
               {/* Paseo guiado por el sistema (modo explicativo) */}
               <OnboardingTour onNavigate={setView} />
             </motion.div>
+            </SpeechConfigProvider>
             </ForecastProvider>
             </DateRangeProvider>
             </VersionProvider>

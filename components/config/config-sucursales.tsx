@@ -29,7 +29,10 @@ import type { IdiomaCode, MonedaCode } from "./config-types"
 import { BulkActionsBar } from "./bulk-actions-bar"
 import { SecurityVault } from "@/components/security-vault"
 import { GuardiansFullConfig } from "@/components/guardians-full-config"
+import { ConfigSpeechAnalytics } from "./config-speech-analytics"
 import { useConfigStore } from "./config-store"
+import { useVersion } from "@/lib/versioning"
+import { AudioLines } from "lucide-react"
 
 const nuevaSucursalVacia = (empresaId: string) => ({
   nombre: "",
@@ -43,9 +46,11 @@ const nuevaSucursalVacia = (empresaId: string) => ({
 
 export function ConfigSucursales() {
   const { empresas, sucursales, setSucursales, addSucursal, lineas } = useConfigStore()
+  const { version } = useVersion()
+  const isEnterprise = version === "enterprise"
   const [selected, setSelected] = useState<string[]>([])
   const [openId, setOpenId] = useState<string | null>(null)
-  const [detailTab, setDetailTab] = useState<"datos" | "boveda" | "guardianes">("datos")
+  const [detailTab, setDetailTab] = useState<"datos" | "boveda" | "guardianes" | "speech">("datos")
   const [crearOpen, setCrearOpen] = useState(false)
   const [nueva, setNueva] = useState(nuevaSucursalVacia(empresas[0]?.id ?? ""))
 
@@ -127,6 +132,12 @@ export function ConfigSucursales() {
               <ShieldCheck className="h-3.5 w-3.5" />
               Guardianes
             </TabBtn>
+            {isEnterprise && (
+              <TabBtn active={detailTab === "speech"} onClick={() => setDetailTab("speech")}>
+                <AudioLines className="h-3.5 w-3.5" />
+                Speech Analytics
+              </TabBtn>
+            )}
           </div>
 
           <div className="pt-4">
@@ -168,6 +179,9 @@ export function ConfigSucursales() {
             )}
             {detailTab === "boveda" && <SecurityVault scopeLabel={openSucursal.nombre} />}
             {detailTab === "guardianes" && <GuardianesTab scopeLabel={openSucursal.nombre} />}
+            {detailTab === "speech" && isEnterprise && (
+              <ConfigSpeechAnalytics sucursalId={openSucursal.id} scopeLabel={openSucursal.nombre} />
+            )}
           </div>
 
           {detailTab === "datos" && (

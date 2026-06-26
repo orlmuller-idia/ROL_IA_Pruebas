@@ -16,6 +16,9 @@ import type { ProfileLevel } from "@/contexts/profile-context"
 import { ReportViewToggle } from "@/components/report-view-toggle"
 import { useScopedSucursales, sucursalNombre } from "@/components/branch-scope"
 import { HelpHint } from "@/components/help-hint"
+import { SPEECH_PILLARS } from "@/lib/speech-pillars"
+import { useSpeechConfig } from "@/contexts/speech-config-context"
+import { Layers } from "lucide-react"
 
 const HELP_BY_LEVEL: Record<ProfileLevel, string> = {
   macro:
@@ -71,11 +74,87 @@ const severidadColor = {
   media: "text-warning border-warning/20 bg-warning/10",
 }
 
+const scoreColor = (s: number) => (s >= 85 ? "bg-emerald-500" : s >= 70 ? "bg-amber-500" : "bg-red-500")
+
+/**
+ * Resultados del modelo de 4 pilares para una sucursal, ponderados con la
+ * configuracion Enterprise (peso por pilar + subniveles requeridos).
+ * Se muestra el score por pilar, su peso y su aporte al indice global.
+ */
+function PillarBreakdown({ sucursalId, dense = false }: { sucursalId: string; dense?: boolean }) {
+  const { getConfig, pillarScore, weightedScore } = useSpeechConfig()
+  const config = getConfig(sucursalId)
+  const sumWeights = SPEECH_PILLARS.reduce((s, p) => s + (config.weights[p.id] ?? 0), 0)
+  const global = weightedScore(sucursalId)
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <span className="text-muted-foreground flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider">
+          <Layers className="h-3 w-3" /> Modelo de evaluacion · 4 pilares
+        </span>
+        <span className="text-foreground text-xs">
+          Indice ponderado: <span className="font-mono font-bold">{global}%</span>
+        </span>
+      </div>
+      <div className="flex flex-col gap-2.5">
+        {SPEECH_PILLARS.map((pillar) => {
+          const weight = config.weights[pillar.id] ?? 0
+          const score = pillarScore(sucursalId, pillar.id)
+          const contribution = sumWeights > 0 ? Math.round((weight / sumWeights) * score) : 0
+          return (
+            <div key={pillar.id} className="flex flex-col gap-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1.5 text-xs">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ backgroundColor: pillar.color }} aria-hidden />
+                  <span className="text-foreground truncate">{pillar.label}</span>
+                </span>
+                <span className="text-muted-foreground shrink-0 text-[11px]">
+                  peso {weight}% · <span className="text-foreground font-mono font-semibold">{score}%</span>
+                </span>
+              </div>
+              <div className="bg-muted flex h-2 overflow-hidden rounded-full">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${score}%` }}
+                  transition={{ duration: 0.6 }}
+                  className={scoreColor(score)}
+                />
+              </div>
+              {!dense && (
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  {pillar.subItems.map((sub) => {
+                    const required = config.required[sub.id] !== false
+                    return (
+                      <span
+                        key={sub.id}
+                        className={`rounded border px-1.5 py-0.5 text-[9px] ${
+                          required
+                            ? "border-border/60 text-muted-foreground bg-secondary/40"
+                            : "border-border/30 text-muted-foreground/50 line-through"
+                        }`}
+                      >
+                        {sub.label}
+                      </span>
+                    )
+                  })}
+                  <span className="text-muted-foreground/70 ml-auto text-[9px] self-center">aporta {contribution} pts</span>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export function IntelSpeechAnalytics() {
   const { currentProfile } = useProfile()
   const [viewOverride, setViewOverride] = useState<ProfileLevel | null>(null)
   const level = viewOverride ?? currentProfile.level
   const { activeIds } = useScopedSucursales()
+  const { weightedScore } = useSpeechConfig()
 
   const scoped = useMemo(
     () => dataset.filter((d) => activeIds.includes(d.sucursalId)),
@@ -173,12 +252,51 @@ export function IntelSpeechAnalytics() {
                 refuerzo de coaching y revision de scripts en esa sede.
               </p>
             </div>
+
+            {/* Indice ponderado de 4 pilares por sucursal */}
+            <div className="border-border/50 mt-1 flex flex-col gap-3 rounded-xl border p-3">
+              <span className="text-muted-foreground flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider">
+                <Layers className="h-3 w-3" /> Indice ponderado por pilares · por sucursal
+              </span>
+              <div className="flex flex-col gap-2.5">
+                {scoped.map((d) => (
+                  <div key={d.sucursalId} className="flex items-center gap-3">
+                    <span className="text-foreground w-40 shrink-0 truncate text-xs">{sucursalNombre(d.sucursalId)}</span>
+                    <div className="bg-muted flex h-2 flex-1 overflow-hidden rounded-full">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${weightedScore(d.sucursalId)}%` }}
+                        transition={{ duration: 0.6 }}
+                        className={scoreColor(weightedScore(d.sucursalId))}
+                      />
+                    </div>
+                    <span className="text-foreground w-12 shrink-0 text-right font-mono text-xs font-semibold">
+                      {weightedScore(d.sucursalId)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-muted-foreground/70 text-[10px] leading-relaxed">
+                Resultado ponderado segun los pesos de cada pilar configurados por sucursal (Enterprise).
+              </p>
+            </div>
           </div>
         )}
 
-        {/* ═══ MESO: incidencias + guion + resistencias ═══ */}
+        {/* ═══ MESO: pilares + incidencias + guion + resistencias ═══ */}
         {level === "meso" && (
           <div className="flex flex-col gap-4">
+            {/* Desglose por pilares de la sucursal con menor cumplimiento del scope */}
+            <div className="border-border/50 rounded-xl border p-3">
+              <div className="mb-2.5 flex items-center justify-between">
+                <span className="text-foreground text-xs font-medium">
+                  Evaluacion por pilares · {sucursalNombre(peor.sucursalId)}
+                </span>
+                <span className="text-muted-foreground text-[10px]">sucursal con mayor oportunidad</span>
+              </div>
+              <PillarBreakdown sucursalId={peor.sucursalId} />
+            </div>
+
             <div className="flex flex-col gap-2">
               <span className="text-muted-foreground flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider">
                 <ShieldX className="h-3 w-3" /> Palabras prohibidas detectadas
@@ -220,9 +338,15 @@ export function IntelSpeechAnalytics() {
           </div>
         )}
 
-        {/* ═══ MICRO: alertas operativas ═══ */}
+        {/* ═══ MICRO: mis pilares + alertas operativas ═══ */}
         {level === "micro" && (
           <div className="flex flex-col gap-2">
+            {/* Mi evaluacion por pilares (sede del asesor) */}
+            <div className="border-border/50 mb-1 rounded-xl border p-3">
+              <span className="text-foreground mb-2.5 block text-xs font-medium">Mi evaluacion por pilares</span>
+              <PillarBreakdown sucursalId={scoped[0]?.sucursalId ?? "s1"} dense />
+            </div>
+
             <div className="bg-alert/5 border-alert/15 flex items-center gap-2 rounded-lg border px-3 py-2">
               <TrendingDown className="text-alert h-3.5 w-3.5 shrink-0" />
               <p className="text-muted-foreground text-[11px] leading-snug">

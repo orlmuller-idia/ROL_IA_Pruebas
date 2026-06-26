@@ -19,22 +19,29 @@ export interface SucursalSpeechConfig {
   weights: Record<string, number>
   /** subItemId -> debe cumplirse */
   required: Record<string, boolean>
+  /** subItemId -> texto/guion de referencia que se comparara para validar cumplimiento */
+  criteria: Record<string, string>
 }
 
 function defaultConfig(): SucursalSpeechConfig {
   const weights: Record<string, number> = {}
   const required: Record<string, boolean> = {}
+  const criteria: Record<string, string> = {}
   for (const p of SPEECH_PILLARS) {
     weights[p.id] = p.defaultWeight
-    for (const s of p.subItems) required[s.id] = true
+    for (const s of p.subItems) {
+      required[s.id] = true
+      criteria[s.id] = ""
+    }
   }
-  return { weights, required }
+  return { weights, required, criteria }
 }
 
 interface SpeechConfigContextValue {
   getConfig: (sucursalId: string) => SucursalSpeechConfig
   setWeight: (sucursalId: string, pillarId: string, value: number) => void
   toggleRequired: (sucursalId: string, subItemId: string) => void
+  setCriteria: (sucursalId: string, subItemId: string, text: string) => void
   resetToDefault: (sucursalId: string) => void
   weightsSum: (sucursalId: string) => number
   /** score 0-100 de un pilar segun la config de la sucursal */
@@ -93,6 +100,23 @@ export function SpeechConfigProvider({ children }: { children: ReactNode }) {
     [ensure],
   )
 
+  const setCriteria = useCallback(
+    (sucursalId: string, subItemId: string, text: string) => {
+      setConfigs((prev) => {
+        const base = ensure(prev, sucursalId)
+        const current = base[sucursalId]
+        return {
+          ...base,
+          [sucursalId]: {
+            ...current,
+            criteria: { ...current.criteria, [subItemId]: text },
+          },
+        }
+      })
+    },
+    [ensure],
+  )
+
   const resetToDefault = useCallback((sucursalId: string) => {
     setConfigs((prev) => ({ ...prev, [sucursalId]: defaultConfig() }))
   }, [])
@@ -127,6 +151,7 @@ export function SpeechConfigProvider({ children }: { children: ReactNode }) {
     getConfig,
     setWeight,
     toggleRequired,
+    setCriteria,
     resetToDefault,
     weightsSum,
     pillarScore,

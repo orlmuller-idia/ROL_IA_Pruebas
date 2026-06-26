@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { AlertTriangle, CheckCircle2, RotateCcw, Save } from "lucide-react"
 import { toast } from "sonner"
@@ -21,7 +22,8 @@ export function ConfigSpeechAnalytics({
   sucursalId: string
   scopeLabel: string
 }) {
-  const { getConfig, setWeight, toggleRequired, resetToDefault, weightsSum } = useSpeechConfig()
+  const { getConfig, setWeight, toggleRequired, setCriteria, resetToDefault, weightsSum } =
+    useSpeechConfig()
   const config = getConfig(sucursalId)
   const sum = weightsSum(sucursalId)
   const over = sum > 100
@@ -32,8 +34,9 @@ export function ConfigSpeechAnalytics({
       <div className="flex flex-col gap-1">
         <p className="text-muted-foreground text-xs">
           Define el modelo de evaluacion de Speech Analytics para{" "}
-          <span className="text-foreground font-medium">{scopeLabel}</span>. Reparte el peso de los 4 pilares y
-          marca que subniveles deben cumplirse. Estos parametros ponderan los resultados del informe.
+          <span className="text-foreground font-medium">{scopeLabel}</span>. Reparte el peso de los 4 pilares, marca
+          que subniveles deben cumplirse y escribe el guion de referencia de cada subnivel — ese texto es el que la
+          IA comparara contra la llamada para validar el cumplimiento. Estos parametros ponderan los resultados del informe.
         </p>
       </div>
 
@@ -103,22 +106,38 @@ export function ConfigSpeechAnalytics({
                 />
               </div>
 
-              {/* Subniveles: debe o no cumplirse */}
-              <div className="border-border/60 mt-3 flex flex-col gap-2 border-t pt-3">
+              {/* Subniveles: debe cumplirse + texto de referencia a comparar */}
+              <div className="border-border/60 mt-3 flex flex-col gap-3 border-t pt-3">
                 <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wide">
-                  Subniveles — debe cumplirse
+                  Subniveles — criterio de referencia y cumplimiento
                 </span>
                 {pillar.subItems.map((sub) => {
                   const isRequired = config.required[sub.id] !== false
                   return (
-                    <div key={sub.id} className="flex items-center justify-between gap-3">
-                      <span className={`text-xs ${isRequired ? "text-foreground" : "text-muted-foreground line-through"}`}>
-                        {sub.label}
-                      </span>
-                      <Switch
-                        checked={isRequired}
-                        onCheckedChange={() => toggleRequired(sucursalId, sub.id)}
-                        aria-label={`${sub.label} debe cumplirse`}
+                    <div key={sub.id} className="border-border/50 bg-secondary/30 flex flex-col gap-2 rounded-lg border p-2.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <span
+                          className={`text-xs font-medium ${isRequired ? "text-foreground" : "text-muted-foreground line-through"}`}
+                        >
+                          {sub.label}
+                        </span>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          <span className="text-muted-foreground text-[10px]">Debe cumplirse</span>
+                          <Switch
+                            checked={isRequired}
+                            onCheckedChange={() => toggleRequired(sucursalId, sub.id)}
+                            aria-label={`${sub.label} debe cumplirse`}
+                          />
+                        </div>
+                      </div>
+                      <Textarea
+                        value={config.criteria[sub.id] ?? ""}
+                        onChange={(e) => setCriteria(sucursalId, sub.id, e.target.value)}
+                        placeholder={sub.placeholder}
+                        disabled={!isRequired}
+                        rows={2}
+                        className="bg-white text-xs disabled:opacity-50"
+                        aria-label={`Criterio de referencia para ${sub.label}`}
                       />
                     </div>
                   )

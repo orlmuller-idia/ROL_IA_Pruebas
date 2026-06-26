@@ -7,6 +7,8 @@
 export interface SpeechSubItem {
   id: string
   label: string
+  /** ejemplo de guion / criterio de referencia que se comparara para validar cumplimiento */
+  placeholder: string
 }
 
 export interface SpeechPillar {
@@ -32,9 +34,24 @@ export const SPEECH_PILLARS: SpeechPillar[] = [
     accent: { text: "text-info", bg: "bg-info/10", border: "border-info/20" },
     defaultWeight: 30,
     subItems: [
-      { id: "proceso-apertura", label: "Apertura y saludo" },
-      { id: "proceso-checklist", label: "Check list / validacion de datos" },
-      { id: "proceso-cierre", label: "Manejo del cierre" },
+      {
+        id: "proceso-apertura",
+        label: "Apertura y saludo",
+        placeholder:
+          "Ej: \"Buenos dias, le saluda [nombre] de [empresa]. Gracias por contactarnos, con quien tengo el gusto?\"",
+      },
+      {
+        id: "proceso-checklist",
+        label: "Check list / validacion de datos",
+        placeholder:
+          "Ej: Confirmar nombre completo, documento, telefono y correo antes de continuar con la gestion.",
+      },
+      {
+        id: "proceso-cierre",
+        label: "Manejo del cierre",
+        placeholder:
+          "Ej: \"Resumo lo acordado: [...]. Quedamos asi y le envio la confirmacion al correo. Algo mas en lo que pueda ayudarle?\"",
+      },
     ],
   },
   {
@@ -45,9 +62,24 @@ export const SPEECH_PILLARS: SpeechPillar[] = [
     accent: { text: "text-rescue", bg: "bg-rescue/10", border: "border-rescue/20" },
     defaultWeight: 25,
     subItems: [
-      { id: "skills-indagacion", label: "Indagacion y deteccion de necesidades" },
-      { id: "skills-objeciones", label: "Manejo de objeciones" },
-      { id: "skills-valor", label: "Presentacion de valor" },
+      {
+        id: "skills-indagacion",
+        label: "Indagacion y deteccion de necesidades",
+        placeholder:
+          "Ej: Hacer al menos 3 preguntas abiertas para entender necesidad, presupuesto y urgencia antes de ofrecer.",
+      },
+      {
+        id: "skills-objeciones",
+        label: "Manejo de objeciones",
+        placeholder:
+          "Ej: Reconocer la objecion, validar la preocupacion y responder con un beneficio concreto. No discutir.",
+      },
+      {
+        id: "skills-valor",
+        label: "Presentacion de valor",
+        placeholder:
+          "Ej: Conectar al menos 2 beneficios con la necesidad detectada antes de mencionar el precio.",
+      },
     ],
   },
   {
@@ -58,9 +90,24 @@ export const SPEECH_PILLARS: SpeechPillar[] = [
     accent: { text: "text-aura", bg: "bg-aura/10", border: "border-aura/20" },
     defaultWeight: 25,
     subItems: [
-      { id: "exp-sentimiento", label: "Analisis de sentimiento" },
-      { id: "exp-escucha", label: "Escucha activa" },
-      { id: "exp-tono", label: "Lenguaje y tono" },
+      {
+        id: "exp-sentimiento",
+        label: "Analisis de sentimiento",
+        placeholder:
+          "Ej: El cliente termina la llamada con sentimiento neutro o positivo; sin frustracion detectada.",
+      },
+      {
+        id: "exp-escucha",
+        label: "Escucha activa",
+        placeholder:
+          "Ej: Parafrasear lo que dice el cliente y no interrumpir. Confirmar entendimiento antes de avanzar.",
+      },
+      {
+        id: "exp-tono",
+        label: "Lenguaje y tono",
+        placeholder:
+          "Ej: Tono calido y profesional, sin tecnicismos ni muletillas. Tratamiento de usted durante toda la llamada.",
+      },
     ],
   },
   {
@@ -71,8 +118,18 @@ export const SPEECH_PILLARS: SpeechPillar[] = [
     accent: { text: "text-warning", bg: "bg-warning/10", border: "border-warning/20" },
     defaultWeight: 20,
     subItems: [
-      { id: "neg-conversion", label: "Conversion de objeciones" },
-      { id: "neg-intencion", label: "Intencion de compra" },
+      {
+        id: "neg-conversion",
+        label: "Conversion de objeciones",
+        placeholder:
+          "Ej: Tras una objecion de precio, ofrecer alternativa o plan de pago y lograr que el cliente reconsidere.",
+      },
+      {
+        id: "neg-intencion",
+        label: "Intencion de compra",
+        placeholder:
+          "Ej: Identificar senales de compra (\"cuando\", \"como pago\") y proponer el siguiente paso de forma directa.",
+      },
     ],
   },
 ]

@@ -23,7 +23,7 @@ import {
 import { Building2, Save, Globe, Coins, Plus, Trash2, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import { MONEDAS } from "./config-types"
-import type { Empresa, MonedaCode } from "./config-types"
+import type { Empresa, MonedaCode, DatosFacturacion } from "./config-types"
 import { useConfigStore } from "./config-store"
 
 const nuevaEmpresaVacia = () => ({
@@ -65,6 +65,9 @@ export function ConfigEmpresa() {
 
   const set = <K extends keyof Empresa>(key: K, value: Empresa[K]) =>
     setEmpresas((prev) => prev.map((e) => (e.id === selectedId ? { ...e, [key]: value } : e)))
+
+  const setFacturacion = <K extends keyof DatosFacturacion>(key: K, value: DatosFacturacion[K]) =>
+    setEmpresas((prev) => prev.map((e) => e.id === selectedId ? { ...e, datosFacturacion: { ...e.datosFacturacion, [key]: value } } : e))
 
   const crearEmpresa = () => {
     if (!nueva.nombre.trim()) {
@@ -129,24 +132,6 @@ export function ConfigEmpresa() {
         </div>
       </div>
 
-      {/* Chips de empresas */}
-      <div className="flex flex-wrap gap-1.5">
-        {empresas.map((e) => (
-          <button
-            key={e.id}
-            onClick={() => setSelectedId(e.id)}
-            className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${
-              e.id === selectedId
-                ? "border-aura bg-aura/10 text-aura"
-                : "border-border bg-secondary/30 text-muted-foreground hover:border-aura/40"
-            }`}
-          >
-            <Building2 className="h-3 w-3" />
-            {e.nombre}
-          </button>
-        ))}
-      </div>
-
       {!empresa ? (
         <div className="border-border flex flex-col items-center gap-3 rounded-xl border border-dashed bg-white/60 p-10 text-center">
           <div className="bg-aura/10 flex h-12 w-12 items-center justify-center rounded-xl">
@@ -188,6 +173,12 @@ export function ConfigEmpresa() {
           </Field>
           <Field label="Identidad fiscal">
             <Input value={empresa.identidadFiscal} onChange={(e) => set("identidadFiscal", e.target.value)} className="bg-secondary/40 h-9 text-sm" />
+          </Field>
+          <Field label="Dirección fiscal">
+            <Input value={empresa.datosFacturacion?.direccionFiscal ?? ""} onChange={(e) => setFacturacion("direccionFiscal", e.target.value)} className="bg-secondary/40 h-9 text-sm" />
+          </Field>
+          <Field label="Correo de facturación">
+            <Input value={empresa.datosFacturacion?.correoFacturacion ?? ""} onChange={(e) => setFacturacion("correoFacturacion", e.target.value)} className="bg-secondary/40 h-9 text-sm" />
           </Field>
         </div>
       </div>

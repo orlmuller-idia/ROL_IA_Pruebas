@@ -51,7 +51,7 @@ interface SectionDef {
 
 const SECTIONS: SectionDef[] = [
   { id: "empresa", label: "Empresas", icon: <Building2 className="h-4 w-4" />, description: "Crea y administra las empresas del grupo: identidad, zona horaria y moneda base.", grupo: "Organizacion", jerarquia: 0 },
-  { id: "grupo", label: "Grupo y Facturacion", icon: <Network className="h-4 w-4" />, description: "Define que empresas integran el grupo y su esquema de facturacion (consolidada o por empresa).", grupo: "Organizacion", jerarquia: 1 },
+  { id: "grupo", label: "Facturación", icon: <Network className="h-4 w-4" />, description: "Define que empresas integran el grupo y su esquema de facturacion (consolidada o por empresa).", grupo: "Organizacion", jerarquia: 1 },
   { id: "sucursales", label: "Sucursales", icon: <MapPin className="h-4 w-4" />, description: "Pais, ciudad, idioma, moneda y boveda de seguridad por sede, asignada a su empresa.", grupo: "Organizacion", jerarquia: 2 },
   { id: "lineas", label: "Lineas de producto", icon: <Tag className="h-4 w-4" />, description: "Lineas de producto por empresa; se asignan a las sucursales al crearlas.", grupo: "Organizacion", jerarquia: 3 },
   { id: "usuarios", label: "Usuarios", icon: <User className="h-4 w-4" />, description: "Usuarios y sus accesos a empresas, sucursales y lineas de producto.", grupo: "Personas", jerarquia: 2 },

@@ -154,7 +154,7 @@ export function CrmSuggestions({ vista, onConvertirUsuario, onConvertirGrupo }: 
                         className={
                           hecho
                             ? "border-rescue/40 text-rescue gap-1 text-xs"
-                            : "bg-aura hover:bg-aura/90 text-foreground gap-1 text-xs"
+                            : "bg-aura hover:bg-aura/90 text-white gap-1 text-xs"
                         }
                       >
                         {hecho ? <Check className="h-3.5 w-3.5" /> : <UserPlus className="h-3.5 w-3.5" />}
@@ -191,7 +191,7 @@ export function CrmSuggestions({ vista, onConvertirUsuario, onConvertirGrupo }: 
                         className={
                           hecho
                             ? "border-rescue/40 text-rescue gap-1 text-xs"
-                            : "bg-aura hover:bg-aura/90 text-foreground gap-1 text-xs"
+                            : "bg-aura hover:bg-aura/90 text-white gap-1 text-xs"
                         }
                       >
                         {hecho ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}

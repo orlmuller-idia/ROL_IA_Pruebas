@@ -186,7 +186,7 @@ export function ConfigSucursales() {
 
           {detailTab === "datos" && (
             <div className="border-border mt-5 flex justify-end border-t pt-4">
-              <Button onClick={guardarDatos} size="sm" className="bg-aura hover:bg-aura/90 text-foreground gap-1.5 text-xs">
+              <Button onClick={guardarDatos} size="sm" className="bg-aura hover:bg-aura/90 text-white gap-1.5 text-xs">
                 Guardar cambios
               </Button>
             </div>
@@ -203,7 +203,7 @@ export function ConfigSucursales() {
         <p className="text-muted-foreground text-xs">
           {sucursales.length} sucursales · cada una con su pais, idioma, moneda y boveda propia
         </p>
-        <Button onClick={() => setCrearOpen(true)} size="sm" className="bg-aura hover:bg-aura/90 text-foreground gap-1.5 text-xs">
+        <Button onClick={() => setCrearOpen(true)} size="sm" className="bg-aura hover:bg-aura/90 text-white gap-1.5 text-xs">
           <Plus className="h-3.5 w-3.5" />
           Nueva sucursal
         </Button>
@@ -394,7 +394,7 @@ export function ConfigSucursales() {
             <Button variant="outline" size="sm" onClick={() => setCrearOpen(false)} className="text-xs">
               Cancelar
             </Button>
-            <Button size="sm" onClick={crearSucursal} className="bg-aura hover:bg-aura/90 text-foreground gap-1.5 text-xs">
+            <Button size="sm" onClick={crearSucursal} className="bg-aura hover:bg-aura/90 text-white gap-1.5 text-xs">
               <Plus className="h-3.5 w-3.5" />
               Crear sucursal
             </Button>

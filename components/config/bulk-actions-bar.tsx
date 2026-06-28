@@ -180,7 +180,7 @@ export function BulkActionsBar({
                 setReplicaOpen(false)
                 onClear()
               }}
-              className="bg-aura hover:bg-aura/90 text-foreground gap-1.5 text-xs"
+              className="bg-aura hover:bg-aura/90 text-white gap-1.5 text-xs"
             >
               <CopyCheck className="h-3.5 w-3.5" />
               Replicar a {targets.length || "todos"}

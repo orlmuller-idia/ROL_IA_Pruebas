@@ -125,7 +125,7 @@ export function ConfigEmpresa() {
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={() => setCrearOpen(true)} size="sm" className="bg-aura hover:bg-aura/90 text-foreground shrink-0 gap-1.5 text-xs">
+          <Button onClick={() => setCrearOpen(true)} size="sm" className="bg-aura hover:bg-aura/90 text-white shrink-0 gap-1.5 text-xs">
             <Plus className="h-3.5 w-3.5" />
             Nueva
           </Button>
@@ -143,7 +143,7 @@ export function ConfigEmpresa() {
               Para empezar a operar, registra al menos una empresa del holding. Luego podrás crear sus sucursales, líneas y usuarios.
             </p>
           </div>
-          <Button onClick={() => setCrearOpen(true)} size="sm" className="bg-aura hover:bg-aura/90 text-foreground gap-1.5 text-xs">
+          <Button onClick={() => setCrearOpen(true)} size="sm" className="bg-aura hover:bg-aura/90 text-white gap-1.5 text-xs">
             <Plus className="h-3.5 w-3.5" /> Crear empresa
           </Button>
         </div>
@@ -230,7 +230,7 @@ export function ConfigEmpresa() {
         </Button>
         <Button
           onClick={() => toast.success(`Cambios de "${empresa.nombre}" guardados correctamente`)}
-          className="bg-aura hover:bg-aura/90 text-foreground gap-1.5 text-xs"
+          className="bg-aura hover:bg-aura/90 text-white gap-1.5 text-xs"
         >
           <Save className="h-3.5 w-3.5" />
           Guardar cambios
@@ -306,7 +306,7 @@ export function ConfigEmpresa() {
 
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setCrearOpen(false)} className="text-xs">Cancelar</Button>
-            <Button size="sm" onClick={crearEmpresa} className="bg-aura hover:bg-aura/90 text-foreground gap-1.5 text-xs">
+            <Button size="sm" onClick={crearEmpresa} className="bg-aura hover:bg-aura/90 text-white gap-1.5 text-xs">
               <Plus className="h-3.5 w-3.5" /> Crear empresa
             </Button>
           </DialogFooter>

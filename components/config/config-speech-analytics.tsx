@@ -166,7 +166,7 @@ export function ConfigSpeechAnalytics({
           size="sm"
           disabled={over}
           onClick={() => toast.success(`Modelo de Speech Analytics guardado para ${scopeLabel}`)}
-          className="bg-aura hover:bg-aura/90 text-foreground gap-1.5 text-xs"
+          className="bg-aura hover:bg-aura/90 text-white gap-1.5 text-xs"
         >
           <Save className="h-3.5 w-3.5" />
           Guardar modelo

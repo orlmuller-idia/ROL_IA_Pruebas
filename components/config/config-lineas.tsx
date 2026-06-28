@@ -101,7 +101,7 @@ export function ConfigLineas() {
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={abrirCrear} size="sm" className="bg-aura hover:bg-aura/90 text-foreground shrink-0 gap-1.5 text-xs">
+          <Button onClick={abrirCrear} size="sm" className="bg-aura hover:bg-aura/90 text-white shrink-0 gap-1.5 text-xs">
             <Plus className="h-3.5 w-3.5" /> Nueva línea
           </Button>
         </div>
@@ -182,7 +182,7 @@ export function ConfigLineas() {
 
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setCrearOpen(false)} className="text-xs">Cancelar</Button>
-            <Button size="sm" onClick={guardar} className="bg-aura hover:bg-aura/90 text-foreground gap-1.5 text-xs">
+            <Button size="sm" onClick={guardar} className="bg-aura hover:bg-aura/90 text-white gap-1.5 text-xs">
               {editar ? <><Pencil className="h-3.5 w-3.5" /> Guardar</> : <><Plus className="h-3.5 w-3.5" /> Crear línea</>}
             </Button>
           </DialogFooter>

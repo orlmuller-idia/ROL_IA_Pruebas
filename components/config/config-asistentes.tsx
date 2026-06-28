@@ -141,7 +141,7 @@ export function ConfigAsistentes() {
         <p className="text-muted-foreground text-xs">
           Crea agentes (Jarvis) y asignales uno o varios perfiles. Activa capacidades y define sus reglas.
         </p>
-        <Button onClick={() => setCrearOpen(true)} size="sm" className="bg-aura hover:bg-aura/90 text-foreground gap-1.5 text-xs">
+        <Button onClick={() => setCrearOpen(true)} size="sm" className="bg-aura hover:bg-aura/90 text-white gap-1.5 text-xs">
           <Plus className="h-3.5 w-3.5" />
           Nuevo agente
         </Button>
@@ -355,7 +355,7 @@ export function ConfigAsistentes() {
 
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setCrearOpen(false)} className="text-xs">Cancelar</Button>
-            <Button size="sm" onClick={crearAgente} className="bg-aura hover:bg-aura/90 text-foreground gap-1.5 text-xs">
+            <Button size="sm" onClick={crearAgente} className="bg-aura hover:bg-aura/90 text-white gap-1.5 text-xs">
               <Plus className="h-3.5 w-3.5" /> Crear agente
             </Button>
           </DialogFooter>

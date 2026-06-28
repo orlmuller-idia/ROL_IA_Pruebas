@@ -371,7 +371,7 @@ export function ConfigUsuarios({ soloVista }: { soloVista?: Vista } = {}) {
               onClick={abrirCrearUsuario}
               disabled={atUserLimit}
               size="sm"
-              className="bg-aura hover:bg-aura/90 text-foreground gap-1.5 text-xs disabled:opacity-50"
+              className="bg-aura hover:bg-aura/90 text-white gap-1.5 text-xs disabled:opacity-50"
             >
               <Plus className="h-3.5 w-3.5" />
               Nuevo usuario
@@ -512,7 +512,7 @@ export function ConfigUsuarios({ soloVista }: { soloVista?: Vista } = {}) {
             <p className="text-muted-foreground text-xs">
               Los grupos asignan lineas de producto a varios usuarios a la vez
             </p>
-            <Button onClick={abrirCrearGrupo} size="sm" className="bg-aura hover:bg-aura/90 text-foreground gap-1.5 text-xs">
+            <Button onClick={abrirCrearGrupo} size="sm" className="bg-aura hover:bg-aura/90 text-white gap-1.5 text-xs">
               <Plus className="h-3.5 w-3.5" />
               Nuevo grupo
             </Button>
@@ -814,7 +814,7 @@ export function ConfigUsuarios({ soloVista }: { soloVista?: Vista } = {}) {
 
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setUsuarioOpen(false)} className="text-xs">Cancelar</Button>
-            <Button size="sm" onClick={guardarUsuario} className="bg-aura hover:bg-aura/90 text-foreground gap-1.5 text-xs">
+            <Button size="sm" onClick={guardarUsuario} className="bg-aura hover:bg-aura/90 text-white gap-1.5 text-xs">
               {editUsuarioId ? <><Pencil className="h-3.5 w-3.5" /> Guardar</> : <><Plus className="h-3.5 w-3.5" /> Crear usuario</>}
             </Button>
           </DialogFooter>
@@ -901,7 +901,7 @@ export function ConfigUsuarios({ soloVista }: { soloVista?: Vista } = {}) {
 
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setGrupoOpen(false)} className="text-xs">Cancelar</Button>
-            <Button size="sm" onClick={guardarGrupo} className="bg-aura hover:bg-aura/90 text-foreground gap-1.5 text-xs">
+            <Button size="sm" onClick={guardarGrupo} className="bg-aura hover:bg-aura/90 text-white gap-1.5 text-xs">
               {editGrupoId ? <><Pencil className="h-3.5 w-3.5" /> Guardar</> : <><Plus className="h-3.5 w-3.5" /> Crear grupo</>}
             </Button>
           </DialogFooter>

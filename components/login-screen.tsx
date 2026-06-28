@@ -176,7 +176,7 @@ export function LoginScreen({ onAuthenticated }: LoginScreenProps) {
             <Button
               type="submit"
               disabled={loading}
-              className="bg-aura hover:bg-aura/90 text-foreground h-11 w-full text-sm font-medium disabled:opacity-60"
+              className="bg-aura hover:bg-aura/90 text-white h-11 w-full text-sm font-medium disabled:opacity-60"
             >
               {loading ? (
                 <>

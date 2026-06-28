@@ -192,7 +192,7 @@ export function SecurityVault({ scopeLabel }: { scopeLabel?: string } = {}) {
                 <Button
                   onClick={handleUnlock}
                   size="sm"
-                  className="bg-aura hover:bg-aura/90 text-foreground shrink-0"
+                  className="bg-aura hover:bg-aura/90 text-white shrink-0"
                 >
                   Acceder
                 </Button>

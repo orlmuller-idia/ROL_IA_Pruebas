@@ -120,7 +120,7 @@ export function ConfigGrupo() {
       <div className="flex justify-end">
         <Button
           onClick={() => toast.success("Configuracion de grupo y facturacion guardada")}
-          className="bg-aura hover:bg-aura/90 text-foreground gap-1.5 text-xs"
+          className="bg-aura hover:bg-aura/90 text-white gap-1.5 text-xs"
         >
           <Save className="h-3.5 w-3.5" />
           Guardar cambios

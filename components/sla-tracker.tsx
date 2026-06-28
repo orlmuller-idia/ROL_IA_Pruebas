@@ -302,7 +302,7 @@ export function SLATracker({
             disabled={
               (phase !== "idle" && phase !== "completed") || !guardianActive
             }
-            className="bg-aura hover:bg-aura/90 text-foreground shrink-0 disabled:opacity-40"
+            className="bg-aura hover:bg-aura/90 text-white shrink-0 disabled:opacity-40"
           >
             <Play className="mr-2 h-4 w-4" />
             Simular Lead Entrante
@@ -413,7 +413,7 @@ export function SLATracker({
                 <Button
                   type="submit"
                   disabled={sendingLead || sendSuccess}
-                  className="bg-aura hover:bg-aura/90 text-foreground disabled:opacity-60"
+                  className="bg-aura hover:bg-aura/90 text-white disabled:opacity-60"
                 >
                   {sendingLead ? (
                     <>
